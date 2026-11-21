@@ -401,8 +401,8 @@
       .wm-label{font-size:13.5px;font-weight:600;color:var(--muted);margin:2px 0 10px}
       .wm-list{display:flex;flex-direction:column;gap:9px;overflow-y:auto;min-height:0;padding-right:2px;scrollbar-width:thin}
       .wm-list .wallet-opt{margin-bottom:0;flex:none}
-      .wallet-opt .wic{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:none;overflow:hidden}
-      .wallet-opt .wic img{width:100%;height:100%;object-fit:cover;display:block}
+      .wallet-opt .wic{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:none;overflow:hidden;position:relative}
+      .wallet-opt .wic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
       .wallet-opt[disabled]{opacity:.6;cursor:wait}
       .wm-note{font-size:12.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
       .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:#0d0d10;color:#fff;font-weight:600;font-size:14px;padding:12px 18px;border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .25s ease;z-index:120;max-width:min(92vw,480px);text-align:center}
@@ -2680,7 +2680,19 @@
           var f = feat("solana:signTransaction");
           if(!f || !f.signTransaction) return Promise.reject(new Error("Wallet does not support signTransaction."));
           if(!wrapped._account) return Promise.reject(new Error("Wallet is not connected."));
-          var inputs = txs.map(function(tx){ return { transaction: new Uint8Array(tx.serialize()), account: wrapped._account }; });
+          /* Serialize WITHOUT requiring signatures — the wallet is what adds
+             them. web3.js serialize() defaults to requireAllSignatures +
+             verifySignatures, which throws "Signature verification failed.
+             Missing signature for public key [the wallet itself]" on any
+             not-yet-signed legacy transaction (create-mint tx 1, stake txs)
+             before the wallet is ever asked. That was the create-token
+             failure. Versioned transactions ignore these options. */
+          var inputs = txs.map(function(tx){
+            var bytes;
+            try{ bytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false }); }
+            catch(e){ bytes = tx.serialize(); }
+            return { transaction: new Uint8Array(bytes), account: wrapped._account };
+          });
           return Promise.resolve(f.signTransaction.apply(f, inputs)).then(function(outs){
             return Array.prototype.map.call(outs, function(o, i){ return deserializeTx(o.signedTransaction, txs[i]); });
           });
@@ -2718,56 +2730,56 @@
        normalised provider or null; url is the wallet's official site,
        opened when the wallet is not installed. */
     var WALLET_DEFS = [
-      { id: "phantom", name: "Phantom", bg: "#ab9ff2", fg: "#2b1a63", mark: "P", url: "https://phantom.app/",
+      { id: "phantom", name: "Phantom", bg: "#ab9ff2", fg: "#2b1a63", mark: "P", icon: "assets/wallets/phantom.png", url: "https://phantom.app/",
         detect: function(){
           if(window.phantom && window.phantom.solana) return window.phantom.solana;
           if(window.solana && window.solana.isPhantom) return window.solana;
           return stdWalletFor(/phantom/i);
         } },
-      { id: "solflare", name: "Solflare", bg: "#fc7227", fg: "#4d2100", mark: "S", url: "https://solflare.com/",
+      { id: "solflare", name: "Solflare", bg: "#fc7227", fg: "#4d2100", mark: "S", icon: "assets/wallets/solflare.png", url: "https://solflare.com/",
         detect: function(){
           if(window.solflare) return window.solflare;
           if(window.solana && window.solana.isSolflare) return window.solana;
           return stdWalletFor(/solflare/i);
         } },
-      { id: "backpack", name: "Backpack", bg: "#e5323e", fg: "#ffffff", mark: "B", url: "https://backpack.app/",
+      { id: "backpack", name: "Backpack", bg: "#e5323e", fg: "#ffffff", mark: "B", icon: "assets/wallets/backpack.png", url: "https://backpack.app/",
         detect: function(){
           if(window.backpack) return window.backpack;
           return stdWalletFor(/backpack/i);
         } },
-      { id: "coinbase", name: "Coinbase Wallet", bg: "#0052ff", fg: "#ffffff", mark: "C", url: "https://www.coinbase.com/wallet",
+      { id: "coinbase", name: "Coinbase Wallet", bg: "#0052ff", fg: "#ffffff", mark: "C", icon: "assets/wallets/coinbase.png", url: "https://www.coinbase.com/wallet",
         detect: function(){
           if(window.coinbaseSolana) return window.coinbaseSolana;
           return stdWalletFor(/coinbase/i);
         } },
-      { id: "okx", name: "OKX Wallet", bg: "#ffffff", fg: "#0d0d10", mark: "O", url: "https://www.okx.com/web3",
+      { id: "okx", name: "OKX Wallet", bg: "#ffffff", fg: "#0d0d10", mark: "O", icon: "assets/wallets/okx.png", url: "https://www.okx.com/web3",
         detect: function(){
           if(window.okxwallet && window.okxwallet.solana) return window.okxwallet.solana;
           return stdWalletFor(/okx/i);
         } },
-      { id: "bitget", name: "Bitget Wallet", bg: "#00f0ff", fg: "#062a33", mark: "B", url: "https://web3.bitget.com/",
+      { id: "bitget", name: "Bitget Wallet", bg: "#00f0ff", fg: "#062a33", mark: "B", icon: "assets/wallets/bitget.png", url: "https://web3.bitget.com/",
         detect: function(){
           if(window.bitkeep && window.bitkeep.solana) return window.bitkeep.solana;
           return stdWalletFor(/bitget|bitkeep/i);
         } },
-      { id: "trust", name: "Trust Wallet", bg: "#0500ff", fg: "#ffffff", mark: "T", url: "https://trustwallet.com/",
+      { id: "trust", name: "Trust Wallet", bg: "#0500ff", fg: "#ffffff", mark: "T", icon: "assets/wallets/trust.png", url: "https://trustwallet.com/",
         detect: function(){
           if(window.trustwallet && window.trustwallet.solana) return window.trustwallet.solana;
           return stdWalletFor(/trust/i);
         } },
-      { id: "exodus", name: "Exodus", bg: "#8952ff", fg: "#ffffff", mark: "E", url: "https://www.exodus.com/",
+      { id: "exodus", name: "Exodus", bg: "#8952ff", fg: "#ffffff", mark: "E", icon: "assets/wallets/exodus.png", url: "https://www.exodus.com/",
         detect: function(){
           if(window.exodus && window.exodus.solana) return window.exodus.solana;
           return stdWalletFor(/exodus/i);
         } },
-      { id: "glow", name: "Glow", bg: "#ff5f8f", fg: "#ffffff", mark: "G", url: "https://glow.app/",
+      { id: "glow", name: "Glow", bg: "#ff5f8f", fg: "#ffffff", mark: "G", icon: "assets/wallets/glow.png", url: "https://glow.app/",
         detect: function(){
           if(window.glow && window.glow.solana) return window.glow.solana;
           if(window.glow && window.glow.connect) return window.glow;
           if(window.solana && window.solana.isGlow) return window.solana;
           return stdWalletFor(/glow/i);
         } },
-      { id: "coin98", name: "Coin98", bg: "#cda349", fg: "#241a00", mark: "9", url: "https://coin98.com/",
+      { id: "coin98", name: "Coin98", bg: "#cda349", fg: "#241a00", mark: "9", icon: "assets/wallets/coin98.png", url: "https://coin98.com/",
         detect: function(){
           if(window.coin98 && window.coin98.sol) return window.coin98.sol;
           return stdWalletFor(/coin98/i);
@@ -2808,10 +2820,11 @@
         var b = document.createElement("button");
         b.type = "button"; b.className = "wallet-opt"; b.setAttribute("data-wallet", d.id);
         var ico = document.createElement("span"); ico.className = "wic";
+        ico.style.background = d.bg; ico.style.color = d.fg; ico.textContent = d.mark;
         if(d.icon){
-          var im = document.createElement("img"); im.src = d.icon; im.alt = ""; ico.appendChild(im);
-        } else {
-          ico.style.background = d.bg; ico.style.color = d.fg; ico.textContent = d.mark;
+          var im = document.createElement("img"); im.src = d.icon; im.alt = "";
+          im.onerror = function(){ if(im.parentNode) im.parentNode.removeChild(im); };
+          ico.appendChild(im);
         }
         var nm = document.createElement("span"); nm.textContent = d.name;
         var st = document.createElement("span");
@@ -2836,6 +2849,23 @@
     $("walletModal").addEventListener("click", function(e){ if(e.target===this) closeWalletModal(); });
 
     var connectSeq = 0;
+    /* A wallet can be reachable through two routes — the legacy injected
+       provider (window.phantom.solana, …) and its Wallet Standard
+       registration. If one route errors or hangs, the other often still
+       answers, so a connect attempt walks both before giving up. */
+    var STD_RE = { phantom: /phantom/i, solflare: /solflare/i, backpack: /backpack/i,
+      coinbase: /coinbase/i, okx: /okx/i, bitget: /bitget|bitkeep/i, trust: /trust/i,
+      exodus: /exodus/i, glow: /glow/i, coin98: /coin98/i };
+    function providerCandidates(kind, first){
+      var out = [];
+      function push(p){ if(p && out.indexOf(p) === -1) out.push(p); }
+      push(first);
+      var re = STD_RE[kind];
+      if(re){ try{ push(stdWalletFor(re)); }catch(e){} }
+      var d = walletDef(kind);
+      if(d){ try{ push(d.detect()); }catch(e){} }
+      return out;
+    }
     function connectWallet(kind, prov, btn, st){
       prov = prov || getProvider(kind);
       var def = walletDef(kind);
@@ -2845,6 +2875,7 @@
         toast(name + " wallet not found — install it, then try again.");
         return;
       }
+      var candidates = providerCandidates(kind, prov);
       var mySeq = ++connectSeq;
       var done = false;
       if(btn) btn.disabled = true;
@@ -2857,33 +2888,58 @@
         if(btn) btn.disabled = false;
         if(st){ st.textContent = "Detected"; st.className = "st ok"; }
       }
-      function finish(pk){
+      function finish(pk, usedProv){
         if(done || mySeq !== connectSeq) return;
-        if(!pk){ fail(new Error("Wallet returned no public key.")); return; }
+        if(!pk){ attemptFail(new Error("Wallet returned no public key."), usedProv); return; }
         done = true; cleanup();
-        state.wallet = { provider: prov, pubkey: pk.toString(), kind: kind };
-        watchProvider(prov);
+        state.wallet = { provider: usedProv, pubkey: pk.toString(), kind: kind };
+        watchProvider(usedProv);
         closeWalletModal();
         onWalletChanged();
         toast("Wallet connected: " + truncAddr(state.wallet.pubkey));
         loadBalances();
       }
-      function fail(err){
+      function finalFail(err){
         if(done || mySeq !== connectSeq) return;
         done = true; cleanup();
-        if(err && err.code === 4001) toast("Connection rejected in " + name + " — click " + name + " again and approve it in the wallet.");
-        else if(err && err.message) toast("Wallet connection failed: " + err.message);
-        else toast("Wallet connection was cancelled or failed.");
+        if(err && (err.code === 4001 || /reject|denied|cancel/i.test(err.message || "")))
+          toast("Connection rejected in " + name + " — click " + name + " again and approve it in the wallet.");
+        else if(err && err.message) toast(name + " didn't respond: " + err.message + " Make sure the wallet is unlocked, then try again.");
+        else toast(name + " didn't respond — make sure it is unlocked, then try again.");
       }
-      if(prov.on){
-        try{ prov.on("connect", function(pk){ finish(pk || prov.publicKey); }); }catch(e){}
+      var attemptIdx = 0;
+      function attemptFail(err, usedProv){
+        if(done || mySeq !== connectSeq) return;
+        /* A user rejection is final — never fire a second prompt behind it. */
+        if(err && (err.code === 4001 || /reject|denied|cancel/i.test(err.message || ""))){ finalFail(err); return; }
+        attemptIdx++;
+        if(attemptIdx < candidates.length) attempt();
+        else finalFail(err);
       }
-      var p;
-      try{ p = prov.connect ? prov.connect() : Promise.reject(new Error("Wallet does not support connect().")); }
-      catch(e){ fail(e); return; }
-      Promise.resolve(p).then(function(res){
-        finish((res && res.publicKey) || prov.publicKey);
-      }, fail);
+      function attempt(){
+        if(done || mySeq !== connectSeq) return;
+        var prov = candidates[attemptIdx];
+        var settled = false;
+        /* If the wallet never answers (Phantom can leave a request pending
+           forever when its panel is closed), clear the stuck request and
+           fall through to the next route instead of spinning forever. */
+        var watchdog = setTimeout(function(){
+          if(settled || done || mySeq !== connectSeq) return;
+          settled = true;
+          try{ if(prov.disconnect){ var r = prov.disconnect(); if(r && r.catch) r.catch(function(){}); } }catch(e){}
+          attemptFail(new Error(name + " did not answer in time."), prov);
+        }, 45000);
+        function ok(pk){ if(settled) return; settled = true; clearTimeout(watchdog); finish(pk || prov.publicKey, prov); }
+        function bad(err){ if(settled) return; settled = true; clearTimeout(watchdog); attemptFail(err, prov); }
+        if(prov.on){
+          try{ prov.on("connect", function(pk){ ok(pk || prov.publicKey); }); }catch(e){}
+        }
+        var p;
+        try{ p = prov.connect ? prov.connect() : Promise.reject(new Error("Wallet does not support connect().")); }
+        catch(e){ bad(e); return; }
+        Promise.resolve(p).then(function(res){ ok((res && res.publicKey) || prov.publicKey); }, bad);
+      }
+      attempt();
     }
     function watchProvider(prov){
       if(!prov || !prov.on || prov._vpWatched) return;
@@ -3720,6 +3776,33 @@
         return res.value;
       });
     }
+    function isUserRejection(e){
+      return !!(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")));
+    }
+    /* Sign with the connected provider first; if that route errors (a stale
+       provider object, a route that cannot sign this transaction type), try
+       the wallet's other route — legacy injected ↔ Wallet Standard — before
+       giving up. A user rejection is final: never fire a second prompt. */
+    async function signWithWallet(tx){
+      var provs = [];
+      function push(p){ if(p && typeof p.signTransaction === "function" && provs.indexOf(p) === -1) provs.push(p); }
+      if(state.wallet){
+        push(state.wallet.provider);
+        if(state.wallet.kind){
+          try{ providerCandidates(state.wallet.kind, state.wallet.provider).forEach(push); }catch(e){}
+        }
+      }
+      if(!provs.length) throw new Error("No connected wallet can sign this transaction.");
+      var lastErr = null;
+      for(var i = 0; i < provs.length; i++){
+        try{ return await provs[i].signTransaction(tx); }
+        catch(e){
+          if(isUserRejection(e)) throw e;
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("The wallet did not sign the transaction.");
+    }
     /* Raydium SDK sends through these callbacks: simulate every transaction
        first; only if all simulations pass does the wallet get asked to sign. */
     function simulateThenSignAll(txs){
@@ -3832,7 +3915,7 @@
         statusLine(box, "Simulating transaction 1…", "mut");
         await simulateTx(conn, tx1);
         statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
-        var signed1 = await state.wallet.provider.signTransaction(tx1);
+        var signed1 = await signWithWallet(tx1);
         var sig1 = await conn.sendRawTransaction(signed1.serialize(), { skipPreflight: false, preflightCommitment: "confirmed" });
         await conn.confirmTransaction({ signature: sig1, blockhash: bh1.blockhash, lastValidBlockHeight: bh1.lastValidBlockHeight }, "confirmed");
         statusLine(box, '<span class="st-ok">Mint created:</span> ' + mintPk.toBase58() + ' · <a href="' + explorerAddr(mintPk.toBase58()) + '" target="_blank" rel="noopener">Solscan</a> · <a href="' + explorerTx(sig1) + '" target="_blank" rel="noopener">tx</a>');
@@ -4168,7 +4251,7 @@
       statusLine(box, "Simulating…", "mut");
       await simulateTx(conn, tx);
       statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
-      var signed = await state.wallet.provider.signTransaction(tx);
+      var signed = await signWithWallet(tx);
       var sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
       await conn.confirmTransaction({ signature: sig, blockhash: bh.blockhash, lastValidBlockHeight: bh.lastValidBlockHeight }, "confirmed");
       return sig;
