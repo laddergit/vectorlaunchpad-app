@@ -1776,6 +1776,7 @@
                 <div>
                   <label class="btn btn-ghost" for="inImage" style="height:38px;font-size:13.5px">Upload image</label>
                   <input type="file" id="inImage" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" />
+                  <button type="button" class="btn btn-ghost" id="imgRetryBtn" style="height:38px;font-size:13.5px;margin-left:8px" disabled>Test upload</button>
                   <div class="hint" style="margin-top:8px">PNG · JPG · WEBP · GIF · max 5 MB</div>
                   <div class="hint" id="imgUpStatus" style="margin-top:4px"></div>
                   <div class="err" id="imgErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:6px"></div>
@@ -2806,10 +2807,20 @@
       if(!name && !sym) return null;
       return { name: name, sym: sym, uri: uri };
     }
+    /* Token metadata uploaded at launch can come back as an ipfs:// URI
+       (the pump.fun IPFS host returns one) and the image field inside
+       that JSON is usually ipfs:// too — browsers can't fetch either, so
+       both are rewritten to a public IPFS gateway here. */
+    function ipfsToHttp(u){
+      if(!u || typeof u !== "string") return u;
+      if(u.indexOf("ipfs://") === 0) return "https://ipfs.io/ipfs/" + u.slice(7).replace(/^ipfs\//, "");
+      return u;
+    }
     function bcMetaImage(uri){
       if(!uri) return null;
+      uri = ipfsToHttp(uri);
       if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(uri)) return uri;
-      return fetch(uri).then(function(r){ return r.json(); }).then(function(j){ return (j && (j.image || j.image_url)) || null; }).catch(function(){ return null; });
+      return fetch(uri).then(function(r){ return r.json(); }).then(function(j){ return ipfsToHttp((j && (j.image || j.image_url)) || null); }).catch(function(){ return null; });
     }
     var curveImgCache = {}; /* mint -> resolved image URL, so re-renders keep the photo */
     function setCurveImg(mint, url){
@@ -4578,6 +4589,7 @@
       $("imgErr").textContent = "";
       wizImageFile = null; wizImageDataUrl = ""; wizMetaKey = ""; wizMetaUriCache = "";
       $("imgUpStatus").textContent = "";
+      $("imgRetryBtn").disabled = true;
       if(!f) return;
       if(!/^image\/(png|jpeg|webp|gif)$/.test(f.type || "")){ $("imgErr").textContent = "That file isn't a PNG, JPG, WebP or GIF."; this.value = ""; return; }
       if(f.size > 5*1024*1024){ $("imgErr").textContent = "That image is over 5 MB — pick a smaller one."; this.value = ""; return; }
@@ -4586,7 +4598,8 @@
       rd.onload = function(){
         wizImageDataUrl = String(rd.result || "");
         $("uploadPreview").innerHTML = '<img src="'+rd.result+'" alt="Token image preview" />';
-        $("imgUpStatus").textContent = "Ready — at launch it uploads with the token metadata, and the hosted link goes on-chain as the token's metadata URI.";
+        $("imgUpStatus").textContent = "Ready — at launch it uploads with the token metadata, and the hosted link goes on-chain as the token's metadata URI. “Test upload” checks the hosts now, before you sign anything.";
+        $("imgRetryBtn").disabled = false;
       };
       rd.readAsDataURL(f);
     });
@@ -5221,30 +5234,84 @@
        launch time the wizard's image and a Metaplex-style metadata JSON
        (name, symbol, description, image, links) are uploaded from the
        browser and the JSON's hosted URL becomes the create_curve uri.
-       Host: catbox.moe — anonymous uploads, no account or API key, files
-       permanent, and its API answers browser CORS requests.
-       Fallback when the host can't be reached: a data-URI metadata JSON —
-       but only when it fits. Metaplex caps the on-chain URI at 200
-       characters, so a data URI with an embedded image (thousands of
-       chars even for a tiny picture) would make the metadata CPI fail and
-       take the whole create down with it; in that case the launch goes
-       ahead with no URI and the status box says the photo didn't make it,
-       rather than sending a transaction that cannot succeed. Text-only
-       metadata (short description, no image) does fit and uses the data
-       URI, so the description still lands on-chain. Results are cached
-       per form state, so a retry after a rejected signature reuses the
-       same upload instead of posting duplicates. */
+       Host chain — every host is anonymous, needs no account or API key,
+       and answers browser CORS requests; each attempt is time-boxed and
+       the next host is tried automatically when one fails:
+         1. pump.fun IPFS (POST pump.fun/api/ipfs) — uploads the image AND
+            the metadata JSON in one call and returns an ipfs:// metadata
+            URI. Built for exactly this (Solana token metadata), pinned
+            permanently.
+         2. uguu.se — generic file host; image first, then the metadata
+            JSON as a second upload.
+         3. telegra.ph — image-only host; if it takes the image, the
+            metadata JSON still goes to uguu.se.
+       (catbox.moe was the previous single host — it went unreachable and
+       launches lost their photos, so it is gone.)
+       Last-resort fallback when every host fails: a data-URI metadata
+       JSON — but only when it fits. Metaplex caps the on-chain URI at
+       200 characters, so a data URI with an embedded image (thousands of
+       chars even for a tiny picture) would make the metadata CPI fail
+       and take the whole create down with it; in that case the launch
+       goes ahead with no URI and the status box says the photo didn't
+       make it, rather than sending a transaction that cannot succeed.
+       Text-only metadata (short description, no image) does fit and
+       uses the data URI, so the description still lands on-chain.
+       Results are cached per form state, so a retry after a rejected
+       signature reuses the same upload instead of posting duplicates;
+       a FAILED upload is never cached, so pressing Launch again (or the
+       wizard's “Test upload” button) retries the hosts. */
     function wizMetaKeyNow(){
       return [$("inName").value.trim(), $("inTicker").value.trim(), $("inDesc").value.trim(), $("inWebsite").value.trim(), $("inX").value.trim(), $("inTelegram").value.trim(), wizImageFile ? (wizImageFile.name + ":" + wizImageFile.size) : "noimg"].join("|");
     }
-    async function catboxUpload(blob, filename){
+    function fetchTimeout(url, opts, ms){
+      var ctl = ("AbortController" in window) ? new AbortController() : null;
+      var timer = null;
+      if(ctl){ opts = opts || {}; opts.signal = ctl.signal; timer = setTimeout(function(){ try { ctl.abort(); } catch(e){} }, ms || 30000); }
+      return fetch(url, opts).then(function(r){ if(timer) clearTimeout(timer); return r; }, function(e){ if(timer) clearTimeout(timer); throw e; });
+    }
+    /* pump.fun IPFS: one multipart POST carries the image file plus the
+       metadata fields; the JSON answer's metadataUri is ready to put
+       on-chain as-is. */
+    async function pumpfunIpfsUpload(meta){
       var fd = new FormData();
-      fd.append("reqtype", "fileupload");
-      fd.append("fileToUpload", blob, filename);
-      var r = await fetch("https://catbox.moe/user/api.php", { method: "POST", body: fd });
-      var t = (await r.text()).trim();
-      if(!r.ok || !/^https:\/\/files\.catbox\.moe\//.test(t)) throw new Error("host answered: " + (t || ("HTTP " + r.status)));
-      return t;
+      fd.append("file", wizImageFile, wizImageFile.name || "token-image");
+      fd.append("name", meta.name);
+      fd.append("symbol", meta.symbol);
+      fd.append("description", meta.description || "");
+      fd.append("showName", "true");
+      if(meta.external_url) fd.append("website", meta.external_url);
+      if(meta.extensions && meta.extensions.twitter) fd.append("twitter", meta.extensions.twitter);
+      if(meta.extensions && meta.extensions.telegram) fd.append("telegram", meta.extensions.telegram);
+      var r = await fetchTimeout("https://pump.fun/api/ipfs", { method: "POST", body: fd }, 45000);
+      var j = null; try { j = await r.json(); } catch(e){}
+      if(!r.ok || !j || !j.metadataUri) throw new Error("host answered HTTP " + r.status);
+      return j.metadataUri;
+    }
+    async function uguuUpload(blob, filename){
+      var fd = new FormData();
+      fd.append("files[]", blob, filename);
+      var r = await fetchTimeout("https://uguu.se/upload.php", { method: "POST", body: fd }, 30000);
+      var j = null; try { j = await r.json(); } catch(e){}
+      var url = j && j.files && j.files[0] && j.files[0].url;
+      if(!r.ok || !url) throw new Error("host answered HTTP " + r.status);
+      return url;
+    }
+    async function telegraphUpload(blob, filename){
+      var fd = new FormData();
+      fd.append("file", blob, filename);
+      var r = await fetchTimeout("https://telegra.ph/upload", { method: "POST", body: fd }, 30000);
+      var j = null; try { j = await r.json(); } catch(e){}
+      var src = j && j[0] && j[0].src;
+      if(!r.ok || !src) throw new Error("host answered HTTP " + r.status);
+      return "https://telegra.ph" + src;
+    }
+    /* Generic file chain for one blob: uguu.se for anything, telegra.ph
+       as an extra chance for images only (it rejects other types). */
+    async function hostedUpload(blob, filename, isImage){
+      var errs = [];
+      try { return await uguuUpload(blob, filename); } catch(e){ errs.push("uguu.se: " + shortErr(e)); }
+      if(isImage){ try { return await telegraphUpload(blob, filename); } catch(e){ errs.push("telegra.ph: " + shortErr(e)); } }
+      throw new Error(errs.join(" · "));
     }
     function dataUriFor(meta){
       try { return "data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(meta)))); }
@@ -5260,29 +5327,66 @@
       if(Object.keys(ext).length) meta.extensions = ext;
       var uri = "";
       if(wizImageFile){
+        /* Host 1: pump.fun IPFS — image + metadata in a single upload. */
         try {
-          statusLine(box, "Uploading token image…", "mut");
-          meta.image = await catboxUpload(wizImageFile, wizImageFile.name || "token-image");
-          statusLine(box, "Image hosted: " + meta.image, "mut");
-          statusLine(box, "Uploading token metadata…", "mut");
-          uri = await catboxUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
-          statusLine(box, '<span class="st-ok">Metadata live:</span> ' + uri);
-        } catch(e){
-          statusLine(box, '<span class="st-err">Image host unreachable (' + esc(shortErr(e)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all.');
-          uri = "";
+          statusLine(box, "Uploading token image + metadata to pump.fun IPFS…", "mut");
+          uri = await pumpfunIpfsUpload(meta);
+          statusLine(box, '<span class="st-ok">Image + metadata hosted on IPFS (pump.fun):</span> ' + esc(uri));
+        } catch(e1){
+          statusLine(box, "pump.fun IPFS unreachable (" + esc(shortErr(e1)) + ") — trying the next host…", "mut");
+          /* Hosts 2+3: host the image, then the metadata JSON. */
+          try {
+            statusLine(box, "Uploading token image…", "mut");
+            meta.image = await hostedUpload(wizImageFile, wizImageFile.name || "token-image", true);
+            statusLine(box, "Image hosted: " + esc(meta.image), "mut");
+            statusLine(box, "Uploading token metadata…", "mut");
+            uri = await uguuUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
+            statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri));
+          } catch(e2){
+            statusLine(box, '<span class="st-err">Every image host failed (' + esc(shortErr(e2)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all. The upload is NOT cached: fix your connection (or turn a VPN off) and press Launch again to retry it, or use “Test upload” in step 1 first.');
+            uri = "";
+          }
         }
       } else if(meta.description || meta.external_url || meta.extensions){
         try {
-          uri = await catboxUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
-          statusLine(box, '<span class="st-ok">Metadata live:</span> ' + uri);
+          statusLine(box, "Uploading token metadata…", "mut");
+          uri = await uguuUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
+          statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri));
         } catch(e){
           var du = dataUriFor(meta);
-          if(du && du.length <= 200){ uri = du; statusLine(box, "Metadata host unreachable — using a short embedded data URI for the text metadata instead.", "mut"); }
+          if(du && du.length <= 200){ uri = du; statusLine(box, "Metadata hosts unreachable — using a short embedded data URI for the text metadata instead.", "mut"); }
         }
       }
-      wizMetaKey = key; wizMetaUriCache = uri;
+      if(uri){ wizMetaKey = key; wizMetaUriCache = uri; }
       return uri;
     }
+    /* “Test upload” (step 1): runs the same host chain now — before any
+       signing — and reports the hosted metadata link, so a dead host is
+       discovered in the wizard instead of mid-launch. A success is
+       cached, so the launch itself reuses it and uploads nothing twice;
+       a failure caches nothing and the button stays retryable. */
+    $("imgRetryBtn").addEventListener("click", async function(){
+      if(!wizImageFile) return;
+      var btn = this; btn.disabled = true; btn.textContent = "Uploading…";
+      $("imgUpStatus").textContent = "Uploading image + metadata to the hosts…";
+      /* uploadTokenMetadata writes its progress through statusLine(box, …)
+         into a status box; give it a detached element so the lines land
+         nowhere visible — the wizard hint line reports the outcome. */
+      var fakeBox = document.createElement("div");
+      var uri = "";
+      try {
+        uri = await uploadTokenMetadata(fakeBox);
+      } catch(e){ uri = ""; }
+      if(uri){
+        $("imgUpStatus").innerHTML = "";
+        $("imgUpStatus").textContent = "✓ Upload works — metadata hosted at " + uri + " · Launch will reuse this upload.";
+        toast("Upload OK — metadata hosted.");
+      } else {
+        $("imgUpStatus").textContent = "✗ All hosts failed — check your connection / VPN and press Test upload again. Nothing was sent on-chain.";
+        toast("Upload failed on every host — try again.");
+      }
+      btn.disabled = false; btn.textContent = "Test upload";
+    });
 
     async function runBondingDeploy(){
       if(state.deploying) return;
