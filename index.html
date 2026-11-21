@@ -380,6 +380,17 @@
       .payout-row .po-addr:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(94,185,232,.18)}
       .po-del{border:1px solid var(--border);background:var(--surface);border-radius:10px;color:var(--muted);font-size:18px;line-height:1;min-height:0;height:42px}
       .po-del:hover{color:var(--red);border-color:var(--red)}
+      .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+      @media (max-width:560px){.mode-grid{grid-template-columns:1fr}}
+      .mode-opt{border:1.5px solid var(--border);background:var(--surface);border-radius:12px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:5px;color:var(--text)}
+      .mode-opt:hover{border-color:var(--border-strong)}
+      .mode-opt.active{border-color:var(--accent);background:color-mix(in srgb,#5EB9E8 8%,var(--surface))}
+      .mode-opt .t-name{font-weight:800;font-size:15.5px}
+      .mode-opt .t-desc{color:var(--muted);font-size:13px;line-height:1.45;font-weight:500}
+      .mode-opt .t-split{font-size:12px;font-weight:800;color:var(--accent-deep);margin-top:2px}
+      html[data-theme="dark"] .mode-opt .t-split{color:#8fd4f7}
+      .curve-bar{height:12px;border-radius:999px;background:var(--surface-3);overflow:hidden;border:1px solid var(--border)}
+      .curve-bar>i{display:block;height:100%;background:var(--grad);border-radius:999px;transition:width .4s ease}
       .initbuy-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0 14px}
       .initbuy-row input{flex:1;border:0;background:none;outline:none;font-size:19px;font-weight:800;color:var(--text);height:48px;min-width:0}
       .initbuy-row .unit{font-weight:800;color:var(--muted)}
@@ -1126,6 +1137,54 @@
 
         <div class="detail-grid">
           <div style="display:grid;gap:16px;min-width:0">
+            <div class="card" id="bondingPanel">
+              <h3>Bonding curve <span class="badge" id="bcBadge">Vector Pad program</span></h3>
+              <p class="note-line" style="margin:0 0 12px" id="bcIntro">Coins launched in <b>Bonding curve</b> mode trade here first: price and market cap come straight from the Curve account, buys and sells go through the curve program, and at ~85 SOL of net buys the curve completes — then anyone can graduate it into a Raydium CPMM pool and trading switches to Jupiter / Raydium.</p>
+              <div class="field" style="margin-bottom:12px">
+                <label for="bcMintInput">Bonding-curve token mint</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input type="text" id="bcMintInput" placeholder="Paste a mint launched in bonding mode" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 13px;font-size:14px;color:var(--text);font-family:ui-monospace,Menlo,monospace" />
+                  <button type="button" class="btn btn-ghost" id="bcLoadBtn" style="height:42px">Load curve</button>
+                </div>
+                <div class="hint" id="bcLoadHint">Tokens you create in bonding mode in this session appear here automatically after launch.</div>
+              </div>
+              <div id="bcBody" style="display:none">
+                <div class="detail-stats" style="grid-template-columns:repeat(4,1fr);margin:6px 0 14px">
+                  <div class="stat"><div class="lbl">Price</div><div class="val num" id="bcPrice" style="font-size:19px">—</div><div class="sub" id="bcPriceSol">—</div></div>
+                  <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="bcMcap" style="font-size:19px">—</div></div>
+                  <div class="stat"><div class="lbl">SOL in curve</div><div class="val num" id="bcRealSol" style="font-size:19px">—</div></div>
+                  <div class="stat"><div class="lbl">Tokens left</div><div class="val num" id="bcTokensLeft" style="font-size:19px">—</div></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px"><span>Progress to graduation</span><span class="num" id="bcProgTxt">—</span></div>
+                <div class="curve-bar"><i id="bcProgBar" style="width:0%"></i></div>
+                <div class="hint" style="margin-top:8px" id="bcStateLine">—</div>
+                <div class="tech-grid" style="margin-top:12px">
+                  <div><div class="k">Curve PDA</div><div class="v" id="bcCurvePda" style="font-size:12px">—</div></div>
+                  <div><div class="k">Creator</div><div class="v" id="bcCreator" style="font-size:12px">—</div></div>
+                  <div><div class="k">Creator fees accrued</div><div class="v num" id="bcCreatorFees">—</div></div>
+                  <div><div class="k">Protocol fees accrued</div><div class="v num" id="bcProtoFees">—</div></div>
+                </div>
+                <div class="bs-tabs" style="margin-top:16px">
+                  <button type="button" id="bcTabBuy" class="active buy">Buy</button>
+                  <button type="button" id="bcTabSell" class="sell">Sell</button>
+                </div>
+                <div class="amt-box">
+                  <div class="row"><input type="text" inputmode="decimal" id="bcAmt" placeholder="0" aria-label="Bonding trade amount" /><span class="unit" id="bcAmtUnit">SOL</span></div>
+                  <div class="usd" id="bcQuoteLine">Enter an amount — the quote uses the live virtual reserves (fee 1%: 0.70% protocol / 0.30% creator).</div>
+                </div>
+                <div class="quote-meta"><span>Slippage</span><span class="chip-row" id="bcSlipRow"><button type="button" class="chip" data-bslip="50">0.5%</button><button type="button" class="chip active" data-bslip="100">1%</button><button type="button" class="chip" data-bslip="200">2%</button><button type="button" class="chip" data-bslip="500">5%</button></span></div>
+                <button type="button" class="action-btn buy" id="bcTradeBtn">Buy on the curve</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                  <button type="button" class="btn btn-grad" id="bcGraduateBtn" style="height:42px;display:none">Graduate to Raydium pool</button>
+                  <button type="button" class="btn btn-ghost" id="bcClaimBtn" style="height:42px">Claim fees</button>
+                  <button type="button" class="btn btn-ghost" id="bcRefreshBtn" style="height:42px">Refresh curve</button>
+                </div>
+                <p class="note-line" id="bcMigratedNote" style="display:none">This curve has <b>graduated</b> — bonding buy/sell is off. Trade it on the Swap page: it now routes through Jupiter against its Raydium pool <span id="bcPoolId" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></span>.</p>
+                <div class="tx-status" id="bcStatus"></div>
+              </div>
+              <div class="devnet-banner" id="bcNotLive" style="margin-top:12px"><b>Program status:</b> <span id="bcNotLiveTxt">Checking the bonding-curve program on this network…</span></div>
+            </div>
+
             <div class="card">
               <h3>Launch status</h3>
               <p style="margin:0 0 10px;color:var(--muted);font-size:14.5px;line-height:1.6">$VECTOR is the Vector Pad token. It has <b style="color:var(--text)">not launched yet</b> — it will launch on pump.fun, and the moment it does, this page becomes the live token page: real price, real chart, real trading, and staking opens.</p>
@@ -1602,10 +1661,26 @@
       <!-- ================= CREATE ================= -->
       <section class="view" id="view-create">
         <h1 class="page-title serif">Launch a coin</h1>
-        <p class="page-sub">Create a token on Solana and pair it with SOL, USDC, or a real tokenized stock. Your pool opens on Raydium CPMM and routes through Jupiter from day one.</p>
+        <p class="page-sub">Two ways to launch. <b>Bonding curve</b> (pump.fun-style): create for ~0.01 SOL in rent, the full 1B supply sits in the curve, people buy from the curve, and the Raydium pool opens automatically at graduation (~85 SOL). <b>Direct Raydium</b>: supply mints to your wallet and you seed the pool yourself (~0.21 SOL in costs).</p>
 
         <div class="create-grid">
           <form class="card" id="createForm" novalidate>
+            <div class="field" style="margin-bottom:6px">
+              <label>Launch mode</label>
+              <div class="mode-grid" id="launchModeGrid">
+                <button type="button" class="mode-opt active" data-mode="bonding">
+                  <span class="t-name">Bonding curve · like pump.fun</span>
+                  <span class="t-desc">Supply is held by the curve, not your wallet. You only get tokens by buying them on the curve. At ~85 SOL of net buys the curve completes and anyone can graduate it into a Raydium CPMM pool (LP burned).</span>
+                  <span class="t-split">Create ≈ 0.01 SOL rent · Trade fee 1% (0.70% protocol / 0.30% creator)</span>
+                </button>
+                <button type="button" class="mode-opt" data-mode="raydium">
+                  <span class="t-name">Direct Raydium pool</span>
+                  <span class="t-desc">The full 1B supply mints straight to your wallet, then you seed a Raydium CPMM pool with part of it. Tradable on Raydium / Jupiter from the first minute.</span>
+                  <span class="t-split">Create ≈ 0.21 SOL costs + your seed</span>
+                </button>
+              </div>
+              <div class="devnet-banner" id="bondingProgramBanner"><b>Bonding curve program:</b> <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px">3P1BD4cwPHAozg7unLo28kBj7Bm3W9mTtVrK3b6s21S7</span> — built and unit-tested (8/8), deployed on mainnet. <span id="bondingProgramState">Checking whether it is deployed on this network…</span> On a network where it is not deployed, bonding-curve launches show this honest state instead of sending anything: <b>bonding curve launches when the program is deployed</b>. The Direct Raydium mode below works either way and is unchanged.</div>
+            </div>
             <ol class="steps" id="stepBar">
               <li data-goto="1" class="active"><span class="n">1</span><span class="t">Identity</span></li>
               <li data-goto="2"><span class="n">2</span><span class="t">Pair</span></li>
@@ -1665,6 +1740,24 @@
             </div>
 
             <div class="step-pane" data-step="2">
+            <div id="bondingStep2" style="display:none">
+              <div class="field">
+                <label>How the bonding curve works</label>
+                <div class="hint" style="margin:0 0 10px">No pair to pick and no seed to provide — the pair is always <b>SOL</b> and the curve <i>is</i> the market until graduation.</div>
+                <div class="tech-grid">
+                  <div><div class="k">Total supply</div><div class="v">1,000,000,000 · 6 decimals</div></div>
+                  <div><div class="k">For sale on curve</div><div class="v">793,100,000 (79.31%)</div></div>
+                  <div><div class="k">Reserved for Raydium pool</div><div class="v">206,900,000 (20.69%)</div></div>
+                  <div><div class="k">Virtual reserves at launch</div><div class="v">30 SOL / 1,073,000,000 tokens</div></div>
+                  <div><div class="k">Graduation</div><div class="v">~85 SOL net buys · mcap ~411 SOL · ~14.7× launch price</div></div>
+                  <div><div class="k">Trade fee</div><div class="v">1% — 0.70% protocol · 0.30% creator</div></div>
+                  <div><div class="k">Your create cost</div><div class="v">~0.01 SOL rent only — no seed, no pool fee</div></div>
+                  <div><div class="k">Mint authority</div><div class="v">Revoked at create (by the program)</div></div>
+                </div>
+                <div class="hint" style="margin-top:10px">Your wallet receives <b>zero</b> tokens at create — exactly like pump.fun. To hold your own coin, buy it on the curve after launch (your first buy can be right after creating). The optional initial buy in Step 3 of the old flow does not apply here; use the token page's Buy panel instead.</div>
+              </div>
+            </div>
+            <div id="raydiumStep2">
             <div class="field" id="fPair">
               <label>Pair asset</label>
               <div class="hint" style="margin:0 0 4px">Your token's pool is priced in the asset you pick.</div>
@@ -1694,8 +1787,10 @@
               <div class="err">Enter a token seed above 0 (max 1,000,000,000) and a pair-asset seed of at least 0.01.</div>
             </div>
             </div>
+            </div>
 
             <div class="step-pane" data-step="3">
+            <div class="devnet-banner" id="bondingFeeNote" style="display:none"><b>Bonding mode:</b> the curve fee is fixed by the program at <b>1%</b> on every buy and sell — <b>0.70%</b> to the protocol wallet, <b>0.30%</b> to you as creator, collected with <b>Claim fees</b> on the token page. The slider below only applies to Direct Raydium launches, so you can skip this step.</div>
             <div class="field">
               <label>Trading fee</label>
               <div class="hint" style="margin:0 0 12px">Charged on every buy and sell of your coin, on top of normal pool fees. What happens to it depends on your coin type — that's the next step.</div>
@@ -1775,6 +1870,7 @@
             <button type="button" class="btn btn-grad deploy-btn" id="deployBtn">Connect wallet to deploy</button>
             <div class="tx-status" id="deployStatus"></div>
             <p class="note-line" id="deployNote">Deployment runs two transactions from your wallet: (1) create the Token-2022 mint, mint the full 1B supply to you, and revoke the mint authority; (2) open the Raydium CPMM pool with your seed liquidity (pool creation costs ~0.19 SOL). Every transaction is simulated first — if simulation fails, nothing is sent. LP tokens go to your wallet and are <b>not</b> auto-locked.</p>
+            <p class="note-line" id="bondingDeployNote" style="display:none">Bonding mode is <b>one</b> transaction: <b>create_curve</b> on the Vector Pad bonding-curve program. The program creates the mint itself, puts the full 1B supply in the curve vault (793.1M for sale, 206.9M reserved for the future Raydium pool), revokes the mint authority, and sets the Metaplex metadata. You pay only rent (~0.01 SOL) and receive <b>no tokens</b> — buy them on the curve from the token page. Protocol wallet (0.70% fee share): <span style="font-family:ui-monospace,Menlo,monospace">FQQpuHZWMowwVNWoYNjovdMA9FqLPqSWmddaAdRFHLCb</span>. Simulated first, like every flow here.</p>
             </div>
 
             <div class="wiz-nav">
@@ -1793,7 +1889,8 @@
             <div class="sum-row"><span class="k">Decimals</span><span class="v">6</span></div>
             <div class="sum-row"><span class="k">Pair asset</span><span class="v" id="sumPair">—</span></div>
             <div class="sum-row"><span class="k">Pair mint</span><span class="v mono" id="sumMint">—</span></div>
-            <div class="sum-row"><span class="k">Pool</span><span class="v">Raydium CPMM</span></div>
+            <div class="sum-row"><span class="k">Launch mode</span><span class="v" id="sumMode">Bonding curve</span></div>
+            <div class="sum-row"><span class="k">Pool</span><span class="v" id="sumPool">At graduation · Raydium CPMM</span></div>
             <div class="sum-row"><span class="k">Trading fee</span><span class="v" id="sumFee">2%</span></div>
             <div class="sum-row"><span class="k">Coin type</span><span class="v" id="sumType">Vanilla</span></div>
             <div class="sum-row"><span class="k">Payouts</span><span class="v" id="sumPayouts">Not set</span></div>
@@ -1955,7 +2052,10 @@
                 <li><b>Payouts</b> — wallet addresses and shares for creator payouts.</li>
                 <li><b>Review &amp; Execute</b> — check the summary card, then deploy.</li>
               </ol>
-              <h3>What deploys on-chain</h3>
+              <h3>Two launch modes</h3>
+              <p><b>Bonding curve (pump.fun-style)</b> — one <code>create_curve</code> call to the Vector Pad bonding-curve program (<code>3P1BD4cwPHAozg7unLo28kBj7Bm3W9mTtVrK3b6s21S7</code>). The program creates the mint, holds the full 1B supply in the curve vault (<b>793.1M for sale</b>, <b>206.9M reserved</b> for the graduation pool), and revokes the mint authority. Virtual reserves start at <b>30 SOL / 1.073B tokens</b>; trades pay a <b>1% fee</b> (0.70% protocol to <code>FQQpuHZWMowwVNWoYNjovdMA9FqLPqSWmddaAdRFHLCb</code>, 0.30% creator, paid out by <code>collect_fees</code>). Your wallet gets <b>zero tokens at create</b> — you buy on the curve like everyone else. At <b>~85 SOL of net buys</b> the curve completes; anyone can then call <code>graduate</code> (permissionless, ~0.02 SOL buffer refunded to the caller), which opens the <b>Raydium CPMM pool</b> from the curve's collected SOL and <b>burns the LP</b>. After graduation the token page switches to Jupiter / Raydium quoting and bonding buy/sell switches off. Create cost: <b>~0.01 SOL of rent only</b>. The program is built and unit-tested (8/8) and <b>deployed on mainnet</b> (21 Nov 2026) — bonding mode is live there. On a network where it is not deployed (e.g. devnet), the app says so plainly (<i>bonding curve launches when the program is deployed</i>) and sends nothing in this mode.</p>
+              <p><b>Direct Raydium</b> — the original two-transaction flow below, unchanged.</p>
+              <h3>What deploys on-chain (Direct Raydium)</h3>
               <p>Deployment is <b>two wallet transactions</b> — mint first, pool second:</p>
               <ul>
                 <li><b>Mint</b> — a Token-2022 token with a <b>fixed supply of 1,000,000,000</b> (6 decimals). The <b>mint and freeze authority are revoked in the same transaction</b>, so no more can ever be issued and balances can't be frozen. Cost: ≈<b>0.0035 SOL</b> in rent-exempt deposits, paid to the network.</li>
@@ -1983,6 +2083,8 @@
               <table class="docs-fees">
                 <thead><tr><th scope="col">What</th><th scope="col">Cost</th><th scope="col">Notes</th></tr></thead>
                 <tbody>
+                  <tr><td>Bonding-curve launch</td><td class="cost">≈0.01 SOL</td><td>One-off rent for the mint, Curve and vault accounts, paid at <code>create_curve</code>. No seed and no pool fee — the Raydium pool at graduation is funded from the curve's collected SOL. The program is deployed on mainnet; on a network where it is not deployed, the app blocks this mode honestly until it is.</td></tr>
+                  <tr><td>Bonding-curve trade fee</td><td class="cost">1% per trade</td><td>Charged by the curve program on buys and sells: 0.70% to the protocol wallet, 0.30% to the creator, accrued on the Curve account and paid out by <code>collect_fees</code>.</td></tr>
                   <tr><td>Token mint</td><td class="cost">≈0.0035 SOL</td><td>One-off. Rent-exempt deposits for the mint and token accounts, paid to the network when you launch a coin.</td></tr>
                   <tr><td>Raydium pool creation</td><td class="cost">≈0.19 SOL</td><td>One-off. Pool account rent plus Raydium's creation cost — on top of the liquidity you seed.</td></tr>
                   <tr><td>Pool trading fee</td><td class="cost">0.25% per trade</td><td>Raydium CPMM's standard fee, charged inside the pool on every swap and shared under Raydium's rules (liquidity providers and the protocol). Vector Pad takes no cut.</td></tr>
@@ -2032,7 +2134,7 @@
                 </details>
                 <details>
                   <summary>What does it cost to launch a coin?</summary>
-                  <p>≈0.0035 SOL for the mint plus ≈0.19 SOL to open the Raydium pool, on top of the liquidity you seed and normal network fees. See <button type="button" class="docs-jump" data-dsec="fees">Fees explained</button> for the full table.</p>
+                  <p>Two modes. <b>Bonding curve:</b> ≈0.01 SOL of rent at create and nothing else — no seed, no pool fee; the pool at graduation is paid from the curve's collected SOL (the program is deployed on mainnet; on a network where it is not deployed, the app says so instead of sending anything). <b>Direct Raydium:</b> ≈0.0035 SOL for the mint plus ≈0.19 SOL to open the Raydium pool, on top of the liquidity you seed and normal network fees. See <button type="button" class="docs-jump" data-dsec="fees">Fees explained</button> for the full table.</p>
                 </details>
                 <details>
                   <summary>Why did my transaction stop before signing?</summary>
@@ -2174,6 +2276,37 @@
     var TOKEN_PROG = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
     var TOKEN22_PROG = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
     var TOTAL_SUPPLY_RAW = "1000000000000000"; /* 1,000,000,000 tokens × 10^6 */
+    /* ================= Bonding curve (pump.fun-style) =================
+       ONE place to change after deploy: if the program is (re)deployed with
+       a different keypair, replace BONDING_CURVE_PROGRAM_ID only — every PDA,
+       instruction and account below derives from this constant.
+       Program: Anchor "vector-bonding-curve" (DESIGN.md in the program repo).
+       Status: compiled, 8/8 unit tests pass, DEPLOYED on mainnet-beta
+       2026-11-21 (self-deployed by the owner; upgrade authority = the
+       owner's deployer keypair). NOT deployed on devnet — the UI checks
+       the chain per network and says so honestly. */
+    var BONDING_CURVE_PROGRAM_ID = "3P1BD4cwPHAozg7unLo28kBj7Bm3W9mTtVrK3b6s21S7";
+    var BONDING_PROTOCOL_WALLET = "FQQpuHZWMowwVNWoYNjovdMA9FqLPqSWmddaAdRFHLCb"; /* receives the 0.70% protocol fee share */
+    var TOKEN_METADATA_PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
+    var ATA_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
+    var SYSVAR_RENT = "SysvarRent111111111111111111111111111111111";
+    /* Curve parameters (mirror of curve-math.mjs / constants.rs) */
+    var BC_TOTAL_SUPPLY = 1000000000000000n;
+    var BC_CURVE_TOKENS = 793100000000000n;
+    var BC_RESERVE_TOKENS = 206900000000000n;
+    var BC_INIT_VSOL = 30000000000n;
+    var BC_INIT_VTOK = 1073000000000000n;
+    var BC_INVARIANT = BC_INIT_VSOL * BC_INIT_VTOK;
+    var BC_FEE_BPS = 100n, BC_MIN_BUY = 100000n, BC_MIN_SELL = 1000n;
+    var BC_DUST = 1000000000n; /* 1000 whole tokens */
+    var BC_GRAD_SOL = 85000000000n; /* ~85 SOL net buys to complete */
+    var BC_DISC = { create_curve:"a9ebdddf416d78b7", buy:"66063d1201daebea", sell:"33e685a4017f83ad", graduate:"2debe1b511da4082", collect_fees:"a498cf631eba13b6" };
+    /* Raydium CPMM constants for graduate (DESIGN.md §8): devnet program/fee
+       receiver differ from mainnet. */
+    var BC_CPMM = {
+      mainnet: { program:"CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C", feeRecv:"DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8" },
+      devnet:  { program:"DRaycpLY18LhpbydsBWbVJtxpNv9oXPgjRSfpF2bWpYb", feeRecv:"3oE58BKVt8KuYkGxx8zBojugnymWmBiyafWgMrnb6eYy" }
+    };
     /* Mainnet is the default; the header switcher flips the whole app to
        devnet (free test SOL) so a launch can be rehearsed end-to-end. */
     var NETWORKS = {
@@ -2221,7 +2354,9 @@
       network: "mainnet", quote: null, quoteFor: null,
       connection: null, connectionNet: null, raydium: null, raydiumKey: null,
       tokenPools: {}, devnetPools: {}, createdTokens: [], pendingDeploy: null,
-      deploying: false, swapping: false
+      deploying: false, swapping: false,
+      launchMode: "bonding", bondingTokens: [], bondingLive: null, bondingLiveNet: null,
+      bc: null, bcSide: "buy", bcSlippage: 100, bcBusy: false
     };
 
     function $(id){ return document.getElementById(id); }
@@ -2640,6 +2775,8 @@
       renderReview();
       buildValidatorOptions();
       syncNetworkUI();
+      state.bondingLive = null; state.bondingLiveNet = null; state.bc = null;
+      refreshBondingProgramState();
       if(state.wallet) loadBalances();
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
       if($("view-stake").classList.contains("active")) loadStakeView();
@@ -3546,6 +3683,127 @@
       });
     });
 
+    /* ================= Bonding curve math (mirror of curve-math.mjs) =================
+       Same formulas as the Rust program: constant product on the VIRTUAL
+       reserves, 1% fee taken outside the curve on the gross amount. */
+    function bcQuoteBuy(solGross, vsol, vtok, realTok){
+      solGross = BigInt(solGross); vsol = BigInt(vsol); vtok = BigInt(vtok); realTok = BigInt(realTok);
+      if(solGross < BC_MIN_BUY) throw new Error("AmountTooSmall: minimum buy is 0.0001 SOL");
+      var fee = solGross * BC_FEE_BPS / 10000n;
+      var protocolFee = fee * 7000n / 10000n, creatorFee = fee - protocolFee;
+      var net = solGross - fee;
+      var newVsol = vsol + net;
+      var newVtok = BC_INVARIANT / newVsol;
+      var out = vtok - newVtok;
+      if(out === 0n) throw new Error("AmountTooSmall");
+      if(out > realTok) throw new Error("BuyExceedsRemaining: that buy is bigger than what is left on the curve — lower the amount (buying the rest needs the exact remaining amount).");
+      return { tokensOut: out, fee: fee, protocolFee: protocolFee, creatorFee: creatorFee, netSol: net, newVsol: newVsol, newVtok: newVtok };
+    }
+    function bcQuoteSell(tokensIn, vsol, vtok){
+      tokensIn = BigInt(tokensIn); vsol = BigInt(vsol); vtok = BigInt(vtok);
+      if(tokensIn < BC_MIN_SELL) throw new Error("AmountTooSmall");
+      var newVtok = vtok + tokensIn;
+      var newVsol = BC_INVARIANT / newVtok;
+      var gross = vsol - newVsol;
+      var fee = gross * BC_FEE_BPS / 10000n;
+      var protocolFee = fee * 7000n / 10000n, creatorFee = fee - protocolFee;
+      var solOut = gross - fee;
+      if(solOut === 0n) throw new Error("AmountTooSmall");
+      return { solOut: solOut, fee: fee, protocolFee: protocolFee, creatorFee: creatorFee, gross: gross, newVsol: newVsol, newVtok: newVtok };
+    }
+    function bcSpotLamports(vsol, vtok){ return (BigInt(vsol) * 1000000n) / BigInt(vtok); } /* lamports per whole token */
+    function bcMcapLamports(vsol, vtok){ return bcSpotLamports(vsol, vtok) * 1000000000n; }
+    function bcHexBytes(hex){ var a = new Uint8Array(hex.length / 2); for(var i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i * 2, 2), 16); return a; }
+    function bcConcat(parts){ var n = 0; parts.forEach(function(p){ n += p.length; }); var out = new Uint8Array(n), o = 0; parts.forEach(function(p){ out.set(p, o); o += p.length; }); return out; }
+    function bcU32(n){ var b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, n, true); return b; }
+    function bcU64(v){ var b = new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(v), true); return b; }
+    function bcBorshStr(s){ var e = new TextEncoder().encode(s); return bcConcat([bcU32(e.length), e]); }
+    function bcCurvePda(w3, mintPk){
+      return w3.PublicKey.findProgramAddressSync([new TextEncoder().encode("curve"), mintPk.toBytes()], new w3.PublicKey(BONDING_CURVE_PROGRAM_ID))[0];
+    }
+    function bcMetadataPda(w3, mintPk){
+      return w3.PublicKey.findProgramAddressSync([new TextEncoder().encode("metadata"), new w3.PublicKey(TOKEN_METADATA_PROGRAM_ID).toBytes(), mintPk.toBytes()], new w3.PublicKey(TOKEN_METADATA_PROGRAM_ID))[0];
+    }
+    function bcParseCurve(data){
+      /* Curve account layout: DESIGN.md §3 (195 bytes + 8 disc) */
+      if(!data || data.length < 195) return null;
+      var S = stack(); if(!S) return null;
+      var dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      function pk(off){ return new S.web3.PublicKey(data.slice(off, off + 32)).toBase58(); }
+      function u64(off){ return dv.getBigUint64(off, true); }
+      var poolBytes = data.slice(154, 186);
+      var poolZero = poolBytes.every(function(b){ return b === 0; });
+      return {
+        mint: pk(8), creator: pk(40), protocolWallet: pk(72),
+        vsol: u64(104), vtok: u64(112), realSol: u64(120), realTok: u64(128),
+        protoFees: u64(136), creatorFees: u64(144),
+        complete: data[152] === 1, migrated: data[153] === 1,
+        poolId: poolZero ? null : new S.web3.PublicKey(poolBytes).toBase58()
+      };
+    }
+    async function bcProgramLive(conn){
+      if(state.bondingLiveNet === state.network && state.bondingLive !== null) return state.bondingLive;
+      var S = stack(); if(!S) return false;
+      try {
+        var info = await conn.getAccountInfo(new S.web3.PublicKey(BONDING_CURVE_PROGRAM_ID), "confirmed");
+        state.bondingLive = !!(info && info.executable);
+      } catch(e){ state.bondingLive = false; }
+      state.bondingLiveNet = state.network;
+      return state.bondingLive;
+    }
+    function bcProgramStateText(live){
+      return live
+        ? "It IS deployed and executable on " + state.network + " — bonding launches, buys and sells below are live."
+        : "It is NOT deployed on " + state.network + " yet — bonding curve launches when the program is deployed. Nothing below will send a transaction until then.";
+    }
+    async function refreshBondingProgramState(){
+      var el1 = $("bondingProgramState"), el2 = $("bcNotLiveTxt");
+      if(!stack()){ if(el1) el1.textContent = "Solana libraries are still loading…"; setTimeout(refreshBondingProgramState, 2500); return; }
+      var conn = getConnection();
+      var live = await bcProgramLive(conn);
+      if(el1) el1.textContent = bcProgramStateText(live);
+      if(el2) el2.textContent = bcProgramStateText(live) + " Program: " + BONDING_CURVE_PROGRAM_ID;
+      var bb = $("bondingProgramBanner"); if(bb) bb.style.borderColor = live ? "var(--green)" : "";
+      updateDeployBtn();
+      updateBcTradeBtn();
+    }
+
+    /* ================= Launch mode (bonding vs direct Raydium) ================= */
+    function setLaunchMode(mode){
+      state.launchMode = mode;
+      document.querySelectorAll("#launchModeGrid .mode-opt").forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-mode") === mode);
+      });
+      var bonding = mode === "bonding";
+      var b2 = $("bondingStep2"), r2 = $("raydiumStep2");
+      if(b2) b2.style.display = bonding ? "" : "none";
+      if(r2) r2.style.display = bonding ? "none" : "";
+      var dn = $("deployNote"), bn = $("bondingDeployNote");
+      if(dn) dn.style.display = bonding ? "none" : "";
+      if(bn) bn.style.display = bonding ? "" : "none";
+      var bf = $("bondingFeeNote"); if(bf) bf.style.display = bonding ? "" : "none";
+      var sm = $("sumMode"); if(sm) sm.textContent = bonding ? "Bonding curve" : "Direct Raydium";
+      var sp = $("sumPool"); if(sp) sp.textContent = bonding ? "At graduation · Raydium CPMM" : "Raydium CPMM";
+      var sf = $("sumFee"); if(sf) sf.textContent = bonding ? "1% curve fee" : fmtFeePct(state.feePct);
+      var si = $("sumInit");
+      if(si) si.textContent = bonding ? "None — supply sits in the curve" : si.textContent;
+      if(bonding){ var si2 = $("sumInit"); if(si2) si2.textContent = "None — supply sits in the curve"; }
+      else updateSeedSummary();
+      /* Steps 3–5 (fee slider / coin type / payouts) only describe the direct
+         mode's display metadata; in bonding mode the fee is fixed at 1% by
+         the program, so those steps are skipped by validation. */
+      var bar = $("stepBar");
+      if(bar){
+        var li2 = bar.querySelector('li[data-goto="2"] .t'); if(li2) li2.textContent = bonding ? "Curve" : "Pair";
+        var li3 = bar.querySelector('li[data-goto="3"] .t'); if(li3) li3.textContent = bonding ? "Curve fee" : "Trading fee";
+      }
+      updateDeployBtn();
+      if(state.step === 6) renderReview();
+    }
+    document.querySelectorAll("#launchModeGrid .mode-opt").forEach(function(b){
+      b.addEventListener("click", function(){ setLaunchMode(b.getAttribute("data-mode")); });
+    });
+
     /* ================= Create form ================= */
     function pairBtn(p){
       var b = document.createElement("button");
@@ -3791,13 +4049,14 @@
         return ok;
       }
       if(n === 2){
+        if(state.launchMode === "bonding") return true; /* pair is always SOL; no seed */
         if(!state.pairSel){ $("fPair").classList.add("invalid"); return false; }
         var st = parseAmtStr($("seedTokenAmt").value), sp = parseAmtStr($("seedPairAmt").value);
         var okSeed = !isNaN(st) && st > 0 && st <= 1000000000 && !isNaN(sp) && sp >= 0.01;
         $("fSeed").classList.toggle("invalid", !okSeed);
         return okSeed;
       }
-      if(n === 3){ return state.feePct >= 1 && state.feePct <= 10; }
+      if(n === 3){ if(state.launchMode === "bonding") return true; return state.feePct >= 1 && state.feePct <= 10; }
       if(n === 4){
         if(state.coinType !== "custom") return true;
         var s = currentSplit();
@@ -3806,6 +4065,7 @@
         return okc;
       }
       if(n === 5){
+        if(state.launchMode === "bonding"){ $("payoutErr").style.display = "none"; return true; } /* creator fee goes to the creator wallet recorded by the program */
         if(currentSplit().creator <= 0){ $("payoutErr").style.display = "none"; return true; }
         var data = payoutData(), err = "";
         if(!data.length) err = "Add at least one payout wallet.";
@@ -3866,6 +4126,21 @@
       if(desc) h += '<p style="color:var(--muted);font-size:14px;margin:2px 0 10px">' + esc(desc) + '</p>';
       h += reviewRow("Network", "Solana " + state.network);
       h += reviewRow("Total supply", "1,000,000,000 · 6 decimals");
+      if(state.launchMode === "bonding"){
+        h += reviewRow("Launch mode", "Bonding curve · pump.fun-style");
+        h += reviewRow("Program", BONDING_CURVE_PROGRAM_ID, true);
+        h += reviewRow("Program status", state.bondingLive ? "Deployed on " + state.network : "Not deployed yet — bonding curve launches when the program is deployed");
+        h += reviewRow("Supply split", "793,100,000 on the curve · 206,900,000 reserved for the Raydium pool");
+        h += reviewRow("Held by your wallet at create", "0 — buy on the curve to hold your coin");
+        h += reviewRow("Virtual reserves", "30 SOL / 1,073,000,000 tokens");
+        h += reviewRow("Graduation", "~85 SOL net buys → Raydium CPMM pool (LP burned)");
+        h += reviewRow("Curve fee", "1% per trade · 0.70% protocol / 0.30% creator");
+        h += reviewRow("Protocol wallet", BONDING_PROTOCOL_WALLET, true);
+        h += reviewRow("Your create cost", "~0.01 SOL rent only");
+        h += reviewRow("Mint authority", "Revoked at create (by the program)");
+        $("reviewBox").innerHTML = h;
+        return;
+      }
       h += reviewRow("Pair asset", p ? p.sym + " · " + p.name : "—");
       if(p) h += reviewRow("Pair mint", p.mint, true);
       h += reviewRow("Pool", "Raydium CPMM · routes via Jupiter");
@@ -3899,6 +4174,11 @@
     function updateDeployBtn(){
       var btn = $("deployBtn");
       if(state.deploying){ btn.textContent = "Deploying…"; return; }
+      if(state.launchMode === "bonding"){
+        if(!state.wallet){ btn.textContent = "Connect wallet to launch"; return; }
+        btn.textContent = state.bondingLive ? "Launch on the bonding curve (~0.01 SOL)" : "Bonding program not deployed yet";
+        return;
+      }
       btn.textContent = state.wallet ? "Deploy token & open pool" : "Connect wallet to deploy";
     }
     $("deployBtn").addEventListener("click", function(){
@@ -3910,6 +4190,7 @@
         }
       }
       if(!state.wallet){ openWalletModal(); return; }
+      if(state.launchMode === "bonding"){ runBondingDeploy(); return; }
       runDeploy();
     });
 
@@ -4315,6 +4596,356 @@
         updateDeployBtn();
       }
     }
+
+    /* ================= Bonding curve: transactions =================
+       Every instruction is built exactly per DESIGN.md §2, simulated first,
+       summarised in one line, then signed in the user's wallet — the same
+       safety pattern as the direct deploy. Nothing here invents a program:
+       if BONDING_CURVE_PROGRAM_ID is not deployed on the active network,
+       every entry point stops with the honest not-deployed state. */
+    async function bcSendIx(box, ix, extraSigners, summary){
+      var S = stack(), w3 = S.web3;
+      var conn = getConnection();
+      var owner = new w3.PublicKey(state.wallet.pubkey);
+      var tx = new w3.Transaction();
+      tx.add(ix);
+      var bh = await conn.getLatestBlockhash("confirmed");
+      tx.recentBlockhash = bh.blockhash;
+      tx.feePayer = owner;
+      (extraSigners || []).forEach(function(kp){ tx.partialSign(kp); });
+      if(summary) summaryLine(box, summary);
+      statusLine(box, "Simulating…", "mut");
+      await simulateTx(conn, tx);
+      statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
+      var signed = await signWithWallet(tx);
+      var sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
+      statusLine(box, "Sent (" + truncAddr(sig) + ") — waiting for confirmation…", "mut");
+      var landed = await confirmSignature(conn, sig, bh.lastValidBlockHeight);
+      if(!landed) throw new Error("The transaction did not land before its blockhash expired — check your wallet activity before retrying.");
+      return sig;
+    }
+    function bcKey(w3, pubkey, isSigner, isWritable){ return { pubkey: pubkey, isSigner: !!isSigner, isWritable: !!isWritable }; }
+
+    async function runBondingDeploy(){
+      if(state.deploying) return;
+      var S = stack();
+      if(!S){ toast("Solana libraries are still loading — try again in a second."); return; }
+      var w3 = S.web3, spl = S.splToken;
+      var net = NETWORKS[state.network];
+      var tick = $("inTicker").value.trim(), name = $("inName").value.trim();
+      var uri = $("inWebsite").value.trim() || "";
+      var conn = getConnection();
+      var owner = new w3.PublicKey(state.wallet.pubkey);
+      var box = $("deployStatus"), btn = $("deployBtn");
+      state.deploying = true; btn.disabled = true; btn.textContent = "Launching…";
+      statusBox(box, "Bonding curve launch · Solana " + state.network);
+      try {
+        var live = await bcProgramLive(conn);
+        if(!live){
+          statusLine(box, '<span class="st-err">Bonding curve launches when the program is deployed.</span> Program ' + BONDING_CURVE_PROGRAM_ID + ' is not deployed on ' + state.network + ' yet, so nothing was built or sent. The program is compiled and tested (8/8) — once it is deployed (same program ID), this exact button goes live with no app change. Direct Raydium mode still works today.');
+          toast("Bonding program not deployed yet — nothing was sent.");
+          return;
+        }
+        var bal = await conn.getBalance(owner);
+        if(bal < 20000000) throw new Error("Not enough SOL for the create rent (~0.01 SOL) plus network fees: your wallet holds " + (bal / 1e9).toFixed(4) + " SOL on " + state.network + ".");
+        /* Fresh mint keypair in the browser; the program creates the mint. */
+        var pend = state.pendingDeploy;
+        var mintKp = (pend && pend.bonding && pend.network === state.network && pend.owner === state.wallet.pubkey && pend.tick === tick) ? pend.kp : w3.Keypair.generate();
+        var mintPk = mintKp.publicKey;
+        state.pendingDeploy = { kp: mintKp, bonding: true, network: state.network, owner: state.wallet.pubkey, tick: tick, name: name };
+        var existing = await conn.getAccountInfo(mintPk, "confirmed").catch(function(){ return null; });
+        if(existing) throw new Error("This mint address is already on-chain (" + mintPk.toBase58() + ") — it looks like an earlier launch landed. Load it on the token page's bonding panel instead of launching again.");
+        var programId = new w3.PublicKey(BONDING_CURVE_PROGRAM_ID);
+        var curvePda = bcCurvePda(w3, mintPk);
+        var metadataPda = bcMetadataPda(w3, mintPk);
+        var vaultAta = spl.getAssociatedTokenAddressSync(mintPk, curvePda, true, new w3.PublicKey(TOKEN_PROG));
+        var data = bcConcat([ bcHexBytes(BC_DISC.create_curve), bcBorshStr(name), bcBorshStr(tick), bcBorshStr(uri), new w3.PublicKey(BONDING_PROTOCOL_WALLET).toBytes() ]);
+        var ix = new w3.TransactionInstruction({
+          programId: programId,
+          keys: [
+            bcKey(w3, owner, true, true),
+            bcKey(w3, curvePda, false, true),
+            bcKey(w3, mintPk, true, true),
+            bcKey(w3, metadataPda, false, true),
+            bcKey(w3, vaultAta, false, true),
+            bcKey(w3, new w3.PublicKey(TOKEN_METADATA_PROGRAM_ID), false, false),
+            bcKey(w3, new w3.PublicKey(TOKEN_PROG), false, false),
+            bcKey(w3, new w3.PublicKey(ATA_PROGRAM_ID), false, false),
+            bcKey(w3, w3.SystemProgram.programId, false, false),
+            bcKey(w3, new w3.PublicKey(SYSVAR_RENT), false, false)
+          ],
+          data: Buffer.from(data)
+        });
+        var sig = await bcSendIx(box, ix, [mintKp], net.label + " · From " + truncAddr(state.wallet.pubkey) + " · create_curve $" + tick + " · Supply 1,000,000,000 held by the curve (793.1M for sale) · Protocol wallet " + truncAddr(BONDING_PROTOCOL_WALLET) + " · Est. cost ~0.01 SOL rent");
+        state.pendingDeploy = null;
+        state.bondingTokens.push({ mint: mintPk.toBase58(), sym: tick, name: name, curve: curvePda.toBase58(), creator: state.wallet.pubkey, network: state.network });
+        var already = state.createdTokens.some(function(t){ return t.mint === mintPk.toBase58(); });
+        if(!already){ state.createdTokens.push({ sym: tick, name: name, mint: mintPk.toBase58(), decimals: 6, programId: TOKEN_PROG, created: true, bonding: true }); renderSwapTokens(); renderLaunched(); }
+        statusLine(box, '<span class="st-ok">Curve live:</span> mint ' + mintPk.toBase58() + ' · <a href="' + explorerAddr(mintPk.toBase58()) + '" target="_blank" rel="noopener">Solscan</a> · <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">tx</a>');
+        statusLine(box, "Your wallet holds 0 " + esc(tick) + " — as designed. Buy on the curve from the token page; at ~85 SOL of net buys the curve completes and can be graduated to Raydium.");
+        toast("Launched $" + tick + " on the bonding curve.");
+        $("bcMintInput").value = mintPk.toBase58();
+        loadBalances();
+        showView("token");
+        loadBcCurve(mintPk.toBase58());
+      } catch(e) {
+        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+        toast("Bonding launch stopped — see the status box for details.");
+      } finally {
+        state.deploying = false; btn.disabled = false; updateDeployBtn();
+      }
+    }
+
+    /* ================= Bonding curve: token panel ================= */
+    async function loadBcCurve(mintStr){
+      var S = stack(); if(!S){ toast("Solana libraries are still loading."); return; }
+      var w3 = S.web3;
+      var mintPk;
+      try { mintPk = new w3.PublicKey(String(mintStr || "").trim()); }
+      catch(e){ toast("That doesn't look like a mint address."); return; }
+      var conn = getConnection();
+      var curvePda = bcCurvePda(w3, mintPk);
+      $("bcBody").style.display = "none";
+      $("bcLoadHint").textContent = "Reading the Curve account " + truncAddr(curvePda.toBase58()) + " on " + state.network + "…";
+      var info = await conn.getAccountInfo(curvePda, "confirmed").catch(function(){ return null; });
+      if(!info){
+        state.bc = null;
+        $("bcLoadHint").textContent = "No Curve account for this mint on " + state.network + " — either the mint was not launched in bonding mode, or the bonding program is not deployed on this network yet (bonding curve launches when the program is deployed).";
+        refreshBondingProgramState();
+        return;
+      }
+      var c = bcParseCurve(info.data);
+      if(!c){ $("bcLoadHint").textContent = "That account exists but is not a readable Curve account."; return; }
+      c.mintStr = mintPk.toBase58(); c.curveStr = curvePda.toBase58();
+      state.bc = c;
+      $("bcBody").style.display = "";
+      $("bcLoadHint").textContent = "Curve loaded from chain — virtual reserves are read live on every refresh.";
+      renderBcPanel();
+      refreshBondingProgramState();
+    }
+    function renderBcPanel(){
+      var c = state.bc; if(!c) return;
+      var priceLamports = bcSpotLamports(c.vsol, c.vtok);
+      var mcapSol = Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9;
+      $("bcPrice").textContent = fmtTokens(Number(priceLamports) / 1e9, 8) + " SOL";
+      $("bcPriceSol").textContent = priceLamports.toString() + " lamports / token";
+      $("bcMcap").textContent = fmtTokens(mcapSol, 2) + " SOL";
+      $("bcRealSol").textContent = fmtTokens(Number(c.realSol) / 1e9, 4) + " SOL";
+      $("bcTokensLeft").textContent = fmtTokens(Number(c.realTok) / 1e6, 0);
+      var pct = Math.min(100, Number(c.realSol) * 100 / Number(BC_GRAD_SOL));
+      $("bcProgBar").style.width = pct.toFixed(2) + "%";
+      $("bcProgTxt").textContent = fmtTokens(Number(c.realSol) / 1e9, 3) + " / ~85 SOL · " + pct.toFixed(1) + "%";
+      $("bcCurvePda").textContent = c.curveStr;
+      $("bcCreator").textContent = c.creator;
+      $("bcCreatorFees").textContent = fmtTokens(Number(c.creatorFees) / 1e9, 6) + " SOL";
+      $("bcProtoFees").textContent = fmtTokens(Number(c.protoFees) / 1e9, 6) + " SOL";
+      var badge = $("bcBadge");
+      if(c.migrated){ badge.textContent = "Graduated · Raydium"; badge.className = "badge live"; }
+      else if(c.complete){ badge.textContent = "Complete · ready to graduate"; badge.className = "badge live"; }
+      else { badge.textContent = "Trading on the curve"; badge.className = "badge"; }
+      $("bcStateLine").innerHTML = c.migrated
+        ? "Curve <b>migrated</b> — the Raydium pool is live and bonding trading is closed."
+        : (c.complete ? "Curve <b>complete</b> — net buys reached the graduation threshold. Anyone can graduate it now (the caller gets the ~0.02 SOL buffer refund)." : "Curve is <b>open</b> — buys and sells price off the virtual reserves above.");
+      $("bcGraduateBtn").style.display = (c.complete && !c.migrated) ? "" : "none";
+      $("bcMigratedNote").style.display = c.migrated ? "" : "none";
+      if(c.migrated && c.poolId) $("bcPoolId").textContent = c.poolId;
+      if(c.migrated && !state.tokenPools[c.mintStr + ":" + state.network]) state.tokenPools[c.mintStr + ":" + state.network] = c.poolId;
+      updateBcQuote();
+      updateBcTradeBtn();
+    }
+    function updateBcTradeBtn(){
+      var btn = $("bcTradeBtn"); if(!btn) return;
+      var c = state.bc;
+      btn.className = "action-btn " + state.bcSide;
+      if(!c){ btn.textContent = "Load a curve first"; btn.disabled = true; return; }
+      if(state.bondingLive === false){ btn.textContent = "Bonding program not deployed on " + state.network; btn.disabled = true; return; }
+      if(c.migrated){ btn.textContent = "Graduated — trade on Swap"; btn.disabled = true; return; }
+      if(c.complete){ btn.textContent = "Curve complete — graduate it below"; btn.disabled = true; return; }
+      btn.disabled = !!state.bcBusy;
+      btn.textContent = state.bcSide === "buy" ? "Buy on the curve" : "Sell on the curve";
+    }
+    function bcCurrentQuote(){
+      var c = state.bc; if(!c) return null;
+      var raw = parseAmtStr($("bcAmt").value);
+      if(isNaN(raw) || raw <= 0) return null;
+      try {
+        if(state.bcSide === "buy"){
+          var lamports = BigInt(Math.round(raw * 1e9));
+          var q = bcQuoteBuy(lamports, c.vsol, c.vtok, c.realTok);
+          q.minOut = q.tokensOut * BigInt(10000 - state.bcSlippage) / 10000n;
+          q.inputLamports = lamports;
+          return q;
+        }
+        var atomic = BigInt(Math.round(raw * 1e6));
+        var qs = bcQuoteSell(atomic, c.vsol, c.vtok);
+        qs.minOut = qs.solOut * BigInt(10000 - state.bcSlippage) / 10000n;
+        qs.inputAtomic = atomic;
+        return qs;
+      } catch(e){ return { error: e.message }; }
+    }
+    function updateBcQuote(){
+      var line = $("bcQuoteLine"); if(!line || !state.bc) return;
+      $("bcAmtUnit").textContent = state.bcSide === "buy" ? "SOL" : (state.bc ? (state.createdTokens.filter(function(t){ return t.mint === state.bc.mintStr; })[0] || {}).sym || "tokens" : "tokens");
+      var q = bcCurrentQuote();
+      if(!q){ line.textContent = "Enter an amount — the quote uses the live virtual reserves (fee 1%: 0.70% protocol / 0.30% creator)."; return; }
+      if(q.error){ line.textContent = q.error; return; }
+      if(state.bcSide === "buy"){
+        line.textContent = "You receive ≈ " + fmtTokens(Number(q.tokensOut) / 1e6, 2) + " tokens · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL (protocol " + fmtTokens(Number(q.protocolFee) / 1e9, 6) + " / creator " + fmtTokens(Number(q.creatorFee) / 1e9, 6) + ") · min out after slippage " + fmtTokens(Number(q.minOut) / 1e6, 2);
+      } else {
+        line.textContent = "You receive ≈ " + fmtTokens(Number(q.solOut) / 1e9, 6) + " SOL · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL · min out after slippage " + fmtTokens(Number(q.minOut) / 1e9, 6) + " SOL";
+      }
+    }
+    function bcSetSide(side){
+      state.bcSide = side;
+      $("bcTabBuy").classList.toggle("active", side === "buy");
+      $("bcTabBuy").classList.toggle("buy", side === "buy");
+      $("bcTabSell").classList.toggle("active", side === "sell");
+      $("bcTabSell").classList.toggle("sell", side === "sell");
+      updateBcQuote(); updateBcTradeBtn();
+    }
+    $("bcTabBuy").addEventListener("click", function(){ bcSetSide("buy"); });
+    $("bcTabSell").addEventListener("click", function(){ bcSetSide("sell"); });
+    $("bcAmt").addEventListener("input", updateBcQuote);
+    $("bcSlipRow").querySelectorAll(".chip").forEach(function(ch){
+      ch.addEventListener("click", function(){
+        state.bcSlippage = parseInt(ch.getAttribute("data-bslip"), 10);
+        $("bcSlipRow").querySelectorAll(".chip").forEach(function(x){ x.classList.toggle("active", x === ch); });
+        updateBcQuote();
+      });
+    });
+    $("bcLoadBtn").addEventListener("click", function(){ loadBcCurve($("bcMintInput").value); });
+    $("bcRefreshBtn").addEventListener("click", function(){ if(state.bc) loadBcCurve(state.bc.mintStr); });
+    async function bcTrade(){
+      var c = state.bc; if(!c || state.bcBusy) return;
+      if(!state.wallet){ openWalletModal(); return; }
+      var S = stack(), w3 = S.web3, spl = S.splToken;
+      var q = bcCurrentQuote();
+      if(!q || q.error){ toast(q && q.error ? q.error : "Enter a valid amount first."); return; }
+      var box = $("bcStatus");
+      state.bcBusy = true; updateBcTradeBtn();
+      statusBox(box, (state.bcSide === "buy" ? "Buy" : "Sell") + " · Bonding curve · Solana " + state.network);
+      try {
+        var live = await bcProgramLive(getConnection());
+        if(!live) throw new Error("Bonding curve launches when the program is deployed — the program is not deployed on " + state.network + " yet, so nothing was sent.");
+        var owner = new w3.PublicKey(state.wallet.pubkey);
+        var mintPk = new w3.PublicKey(c.mintStr);
+        var curvePda = new w3.PublicKey(c.curveStr);
+        var programId = new w3.PublicKey(BONDING_CURVE_PROGRAM_ID);
+        var tokenProg = new w3.PublicKey(TOKEN_PROG);
+        var vaultAta = spl.getAssociatedTokenAddressSync(mintPk, curvePda, true, tokenProg);
+        var ix, summary;
+        if(state.bcSide === "buy"){
+          var buyerAta = spl.getAssociatedTokenAddressSync(mintPk, owner, false, tokenProg);
+          ix = new w3.TransactionInstruction({ programId: programId, keys: [
+            bcKey(w3, owner, true, true), bcKey(w3, curvePda, false, true), bcKey(w3, mintPk, false, false),
+            bcKey(w3, vaultAta, false, true), bcKey(w3, buyerAta, false, true),
+            bcKey(w3, tokenProg, false, false), bcKey(w3, new w3.PublicKey(ATA_PROGRAM_ID), false, false), bcKey(w3, w3.SystemProgram.programId, false, false)
+          ], data: Buffer.from(bcConcat([bcHexBytes(BC_DISC.buy), bcU64(q.inputLamports), bcU64(q.minOut)])) });
+          summary = NETWORKS[state.network].label + " · From " + truncAddr(state.wallet.pubkey) + " · Buy curve " + truncAddr(c.mintStr) + " · Pay " + fmtTokens(Number(q.inputLamports) / 1e9, 6) + " SOL (incl. 1% fee) · Min receive " + fmtTokens(Number(q.minOut) / 1e6, 2) + " tokens";
+        } else {
+          var sellerAta = spl.getAssociatedTokenAddressSync(mintPk, owner, false, tokenProg);
+          ix = new w3.TransactionInstruction({ programId: programId, keys: [
+            bcKey(w3, owner, true, true), bcKey(w3, curvePda, false, true), bcKey(w3, mintPk, false, false),
+            bcKey(w3, vaultAta, false, true), bcKey(w3, sellerAta, false, true),
+            bcKey(w3, tokenProg, false, false), bcKey(w3, w3.SystemProgram.programId, false, false)
+          ], data: Buffer.from(bcConcat([bcHexBytes(BC_DISC.sell), bcU64(q.inputAtomic), bcU64(q.minOut)])) });
+          summary = NETWORKS[state.network].label + " · From " + truncAddr(state.wallet.pubkey) + " · Sell curve " + truncAddr(c.mintStr) + " · Sell " + fmtTokens(Number(q.inputAtomic) / 1e6, 2) + " tokens · Min receive " + fmtTokens(Number(q.minOut) / 1e9, 6) + " SOL (after 1% fee)";
+        }
+        var sig = await bcSendIx(box, ix, [], summary);
+        statusLine(box, '<span class="st-ok">Trade confirmed.</span> <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">View on Solscan</a>');
+        toast("Curve trade confirmed");
+        loadBalances();
+        await loadBcCurve(c.mintStr);
+      } catch(e) {
+        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+      } finally { state.bcBusy = false; updateBcTradeBtn(); }
+    }
+    $("bcTradeBtn").addEventListener("click", bcTrade);
+    async function bcGraduate(){
+      var c = state.bc; if(!c || state.bcBusy) return;
+      if(!state.wallet){ openWalletModal(); return; }
+      var S = stack(), w3 = S.web3, spl = S.splToken;
+      var box = $("bcStatus");
+      state.bcBusy = true;
+      statusBox(box, "Graduate · Bonding curve → Raydium CPMM · Solana " + state.network);
+      try {
+        var live = await bcProgramLive(getConnection());
+        if(!live) throw new Error("Bonding curve launches when the program is deployed — the program is not deployed on " + state.network + " yet, so nothing was sent.");
+        if(!c.complete || c.migrated) throw new Error("This curve is not in a graduable state (complete=" + c.complete + ", migrated=" + c.migrated + ").");
+        var owner = new w3.PublicKey(state.wallet.pubkey);
+        var mintPk = new w3.PublicKey(c.mintStr);
+        var curvePda = new w3.PublicKey(c.curveStr);
+        var programId = new w3.PublicKey(BONDING_CURVE_PROGRAM_ID);
+        var tokenProg = new w3.PublicKey(TOKEN_PROG);
+        var cpmm = BC_CPMM[state.network];
+        var cpmmProg = new w3.PublicKey(cpmm.program);
+        var wsolPk = new w3.PublicKey(SOL_MINT);
+        /* CPMM wants the two mints ordered by byte order. */
+        var mintBytes = mintPk.toBytes(), wsolBytes = wsolPk.toBytes();
+        var mintIs0 = Buffer.compare(Buffer.from(mintBytes), Buffer.from(wsolBytes)) < 0;
+        var token0 = mintIs0 ? mintPk : wsolPk, token1 = mintIs0 ? wsolPk : mintPk;
+        function pda(seeds, prog){ return w3.PublicKey.findProgramAddressSync(seeds, prog)[0]; }
+        var ammConfig = pda([new TextEncoder().encode("amm_config"), new Uint8Array([0, 0])], cpmmProg);
+        var authority = pda([new TextEncoder().encode("vault_and_lp_mint_auth_seed")], cpmmProg);
+        var poolState = pda([new TextEncoder().encode("pool"), ammConfig.toBytes(), token0.toBytes(), token1.toBytes()], cpmmProg);
+        var lpMint = pda([new TextEncoder().encode("pool_lp_mint"), poolState.toBytes()], cpmmProg);
+        var vault0 = pda([new TextEncoder().encode("pool_vault"), poolState.toBytes(), token0.toBytes()], cpmmProg);
+        var vault1 = pda([new TextEncoder().encode("pool_vault"), poolState.toBytes(), token1.toBytes()], cpmmProg);
+        var observation = pda([new TextEncoder().encode("observation"), poolState.toBytes()], cpmmProg);
+        var curveVault = spl.getAssociatedTokenAddressSync(mintPk, curvePda, true, tokenProg);
+        var curveWsol = spl.getAssociatedTokenAddressSync(wsolPk, curvePda, true, tokenProg);
+        var curveLp = spl.getAssociatedTokenAddressSync(lpMint, curvePda, true, tokenProg);
+        var ix = new w3.TransactionInstruction({ programId: programId, keys: [
+          bcKey(w3, owner, true, true), bcKey(w3, curvePda, false, true), bcKey(w3, mintPk, false, false),
+          bcKey(w3, token0, false, false), bcKey(w3, token1, false, false), bcKey(w3, wsolPk, false, false),
+          bcKey(w3, curveVault, false, true), bcKey(w3, curveWsol, false, true),
+          bcKey(w3, cpmmProg, false, false), bcKey(w3, ammConfig, false, false), bcKey(w3, authority, false, false),
+          bcKey(w3, poolState, false, true), bcKey(w3, lpMint, false, true),
+          bcKey(w3, vault0, false, true), bcKey(w3, vault1, false, true),
+          bcKey(w3, new w3.PublicKey(cpmm.feeRecv), false, true), bcKey(w3, observation, false, true),
+          bcKey(w3, curveLp, false, true),
+          bcKey(w3, tokenProg, false, false), bcKey(w3, tokenProg, false, false), bcKey(w3, tokenProg, false, false),
+          bcKey(w3, new w3.PublicKey(ATA_PROGRAM_ID), false, false), bcKey(w3, w3.SystemProgram.programId, false, false),
+          bcKey(w3, new w3.PublicKey(SYSVAR_RENT), false, false)
+        ], data: Buffer.from(bcHexBytes(BC_DISC.graduate)) });
+        var sig = await bcSendIx(box, ix, [], NETWORKS[state.network].label + " · From " + truncAddr(state.wallet.pubkey) + " · Graduate curve " + truncAddr(c.mintStr) + " → Raydium CPMM pool " + truncAddr(poolState.toBase58()) + " · Pool funded from the curve's collected SOL · LP burned · ~0.02 SOL buffer refunded to you");
+        statusLine(box, '<span class="st-ok">Graduated.</span> Pool ' + poolState.toBase58() + ' · <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">View tx on Solscan</a> — bonding trading is now off; trade it on the Swap page via Jupiter.');
+        toast("Graduated to Raydium — pool is live");
+        await loadBcCurve(c.mintStr);
+      } catch(e) {
+        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+      } finally { state.bcBusy = false; updateBcTradeBtn(); }
+    }
+    $("bcGraduateBtn").addEventListener("click", bcGraduate);
+    async function bcCollectFees(){
+      var c = state.bc; if(!c || state.bcBusy) return;
+      if(!state.wallet){ openWalletModal(); return; }
+      if(c.creatorFees === 0n && c.protoFees === 0n){ toast("No accrued fees to collect right now."); return; }
+      var S = stack(), w3 = S.web3;
+      var box = $("bcStatus");
+      state.bcBusy = true;
+      statusBox(box, "Collect fees · Bonding curve · Solana " + state.network);
+      try {
+        var live = await bcProgramLive(getConnection());
+        if(!live) throw new Error("Bonding curve launches when the program is deployed — the program is not deployed on " + state.network + " yet, so nothing was sent.");
+        var owner = new w3.PublicKey(state.wallet.pubkey);
+        var mintPk = new w3.PublicKey(c.mintStr);
+        var curvePda = new w3.PublicKey(c.curveStr);
+        var ix = new w3.TransactionInstruction({ programId: new w3.PublicKey(BONDING_CURVE_PROGRAM_ID), keys: [
+          bcKey(w3, owner, true, false), bcKey(w3, curvePda, false, true), bcKey(w3, mintPk, false, false),
+          bcKey(w3, new w3.PublicKey(c.protocolWallet), false, true), bcKey(w3, new w3.PublicKey(c.creator), false, true),
+          bcKey(w3, w3.SystemProgram.programId, false, false)
+        ], data: Buffer.from(bcHexBytes(BC_DISC.collect_fees)) });
+        var sig = await bcSendIx(box, ix, [], NETWORKS[state.network].label + " · From " + truncAddr(state.wallet.pubkey) + " · collect_fees " + truncAddr(c.mintStr) + " · Protocol " + fmtTokens(Number(c.protoFees) / 1e9, 6) + " SOL → " + truncAddr(c.protocolWallet) + " · Creator " + fmtTokens(Number(c.creatorFees) / 1e9, 6) + " SOL → " + truncAddr(c.creator));
+        statusLine(box, '<span class="st-ok">Fees collected.</span> <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">View on Solscan</a> — shares went to the recorded protocol and creator wallets, not to the caller.');
+        toast("Curve fees collected");
+        loadBalances();
+        await loadBcCurve(c.mintStr);
+      } catch(e) {
+        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+      } finally { state.bcBusy = false; updateBcTradeBtn(); }
+    }
+    $("bcClaimBtn").addEventListener("click", bcCollectFees);
 
     /* ================= Swap execution ================= */
     function executeSwap(){
@@ -5026,7 +5657,9 @@
     /* ---- Create wizard init ---- */
     setFee(2);
     addPayoutRow("", 100);
+    setLaunchMode("bonding");
     gotoStep(1);
+    refreshBondingProgramState();
 
     /* ================= Boot ================= */
     renderSwapTokens();
