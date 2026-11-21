@@ -83,7 +83,7 @@
       }
       *{box-sizing:border-box}
       html{scroll-behavior:smooth}
-      body{margin:0;background:var(--bg);color:var(--text);font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+      body{margin:0;background:var(--bg);color:var(--text);font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
       .serif{font-family:"Newsreader",Georgia,"Times New Roman",serif}
       .num{font-variant-numeric:tabular-nums}
       a{color:inherit;text-decoration:none}
@@ -105,7 +105,7 @@
       nav.main{display:flex;gap:2px;margin-left:4px}
       nav.main button{background:none;border:0;color:var(--muted);font-weight:600;font-size:14px;padding:8px 10px;border-radius:9px;min-height:2.25rem;white-space:nowrap;position:relative}
       nav.main button:hover{color:var(--text);background:var(--surface-2)}
-      nav.main button.active{color:var(--text);background:none;font-weight:700}
+      nav.main button.active{color:var(--text);background:none;font-weight:600}
       nav.main button.active::after{content:"";position:absolute;left:10px;right:10px;bottom:1px;height:2px;border-radius:2px;background:var(--accent)}
       .header-spacer{flex:1}
       .search-box{display:flex;align-items:center;gap:8px;background:var(--search-bg);border:1px solid var(--border);border-radius:10px;padding:0 12px;height:38px;width:190px;flex:none}
@@ -129,7 +129,7 @@
 
       /* ---------- Live bar (under the header, every page) ---------- */
       .livebar{border-bottom:1px solid var(--border);background:var(--surface)}
-      .livebar-in{display:flex;align-items:center;gap:10px;height:37px;font-size:13px}
+      .livebar-in{display:flex;align-items:center;gap:10px;height:47px;font-size:13px}
       .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none;animation:livePulse 2.2s ease-out infinite}
       @keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(47,191,113,.45)}70%{box-shadow:0 0 0 7px rgba(47,191,113,0)}100%{box-shadow:0 0 0 0 rgba(47,191,113,0)}}
       .livebar .lb-name{font-weight:800}
@@ -160,8 +160,13 @@
       .up{color:var(--green)} .down{color:var(--red)}
 
       /* ---------- Page scaffolding ---------- */
-      main{padding:30px 0 70px}
-      .page-title{font-size:clamp(40px,6vw,58px);font-weight:600;letter-spacing:-.01em;margin:6px 0 4px;line-height:1.05}
+      /* main grows to fill the viewport (flex column body), so short pages
+         like Swap/Stake/Bridge keep their content up top with a long empty
+         stretch below and the footer at the bottom of the screen — the
+         roomy Ascend layout — instead of the footer hugging the content. */
+      main{padding:46px 0 96px;flex:1 0 auto;width:100%}
+      header.site,.livebar,.ticker,footer.site{flex:none}
+      .page-title{font-family:"Newsreader",Georgia,"Times New Roman",serif;font-size:clamp(40px,4.6vw,48px);font-weight:600;letter-spacing:-.01em;margin:10px 0 6px;line-height:1.05}
       .page-sub{color:var(--muted);font-size:15.5px;margin:0 0 26px;max-width:640px}
       .view{display:none}
       .view.active{display:block}
@@ -172,6 +177,47 @@
       .stat .lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
       .stat .val{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
       .stat .sub{font-size:12px;color:var(--faint);margin-top:3px;font-weight:600}
+
+      /* ---------- Explore header (Ascend layout) ----------
+         Title + subtitle on the left, the key stats as plain label-over-value
+         columns on the right in the same row — no stat cards — then a rule,
+         the filter tabs and the sort bar, each with room to breathe. */
+      .explore-head{display:flex;align-items:flex-end;justify-content:space-between;gap:26px 48px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid var(--border);margin-bottom:26px}
+      .explore-head .page-title{margin:0 0 8px}
+      .explore-head .page-sub{margin:0}
+      .explore-head-l{flex:none}
+      /* Stat row, measured from the rendered Ascend Explore header:
+         values ~34px/800, one size, one shared baseline; labels sit directly
+         above the value and a wrapped label grows upward, never moving the
+         value; columns equal width with faint vertical dividers. Applied
+         here as: an equal 6-column grid, a fixed two-line label block
+         bottom-aligned to the value, and a fixed-height value box so a
+         number and a "—" placeholder occupy the exact same line. */
+      #statsRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;flex:1 1 640px;min-width:min(100%,560px)}
+      #statsRow .stat{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+      #statsRow .stat:first-child{padding-left:0}
+      #statsRow .stat:last-child{padding-right:0}
+      #statsRow .stat + .stat{border-left:1px solid var(--border)}
+      #statsRow .stat .lbl{font-size:10.5px;line-height:1.3;min-height:28px;display:flex;align-items:flex-end;margin-bottom:6px}
+      #statsRow .stat .val{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.01em;height:34px;display:flex;align-items:center;white-space:nowrap}
+      #statsRow .stat .sub{font-size:12px;line-height:1.35;min-height:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #view-explore .tabs{margin-bottom:22px}
+      #view-explore .controls{margin-bottom:20px}
+      @media (max-width:1020px){
+        .explore-head{flex-direction:column;align-items:flex-start;gap:24px}
+        #statsRow{flex:none;width:100%;min-width:0}
+      }
+      @media (max-width:680px){
+        .explore-head{padding-bottom:22px;margin-bottom:22px}
+        #statsRow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:20px}
+        #statsRow .stat{padding:0 12px}
+        #statsRow .stat:nth-child(3n+1){padding-left:0;border-left:0}
+        #statsRow .stat:nth-child(3n){padding-right:0}
+        #statsRow .stat .val{font-size:24px;height:30px}
+        #statsRow .stat .sub{font-size:11px}
+        #view-explore .tabs{margin-bottom:18px}
+        #view-explore .controls{margin-bottom:16px}
+      }
 
       /* ---------- Tabs & controls ---------- */
       .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
@@ -570,8 +616,9 @@
       .info-card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 
       /* ---------- Portfolio ---------- */
-      .pf-stats{grid-template-columns:repeat(4,1fr)}
-      .hold-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--border)}
+      .pf-stats{grid-template-columns:repeat(4,1fr);gap:14px}
+      .pf-stats .stat{padding:18px 20px}
+      .hold-row{display:flex;align-items:center;gap:14px;padding:16px 2px;border-bottom:1px solid var(--border)}
       .hold-row:last-child{border-bottom:0}
       .hold-row .h-sym{font-weight:800;font-size:15px}
       .hold-row .h-sym .badge{margin-left:7px;vertical-align:2px}
@@ -605,8 +652,8 @@
       .asc-page>*{position:relative}
       .asc-head{display:flex;align-items:flex-start;gap:20px}
       .asc-head-txt{flex:1;min-width:0}
-      .asc-title{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(44px,5vw,56px);line-height:1.02;letter-spacing:.005em;color:var(--stage-text);margin:0}
-      .asc-title.big{font-size:clamp(54px,6.8vw,76px)}
+      .asc-title{font-family:"Newsreader",Georgia,"Times New Roman",serif;font-weight:600;font-size:clamp(40px,4.6vw,48px);line-height:1.05;letter-spacing:-.01em;color:var(--stage-text);margin:0}
+      .asc-title.big{font-size:clamp(40px,4.6vw,48px)}
       html[data-theme="dark"] .title-grad{background:linear-gradient(94deg,#8fd4f7 0%,#eaf7ff 58%,#ffffff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
       .grad-word{background:linear-gradient(94deg,#5EB9E8,#8fd4f7);-webkit-background-clip:text;background-clip:text;color:transparent}
       .asc-sub{color:var(--stage-muted);font-size:16.5px;line-height:1.5;margin:14px 0 0;max-width:520px}
@@ -697,8 +744,8 @@
       }
       @media (max-width:680px){
         .hero-orbit{display:none}
-        .asc-title{font-size:44px}
-        .asc-title.big{font-size:52px}
+        .asc-title{font-size:34px}
+        .asc-title.big{font-size:34px}
         .asc-sub{font-size:15px}
         .asc-amtrow input{font-size:30px;height:46px}
         .recv-main .rv{font-size:25px}
@@ -780,18 +827,19 @@
 
       /* ---------- Portfolio page (Ascend /me layout) ---------- */
       .page-title.md{font-size:clamp(40px,4.6vw,48px)}
-      .pf-rule{height:2px;border-radius:2px;background:linear-gradient(90deg,#5EB9E8,rgba(94,185,232,0));margin:16px 0 24px}
-      .pf-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
-      .pf-main{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+      .pf-rule{height:2px;border-radius:2px;background:linear-gradient(90deg,#5EB9E8,rgba(94,185,232,0));margin:20px 0 34px}
+      .pf-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}
+      .pf-main{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:30px;box-shadow:var(--shadow);position:relative;overflow:hidden}
       .pf-main::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#5EB9E8,rgba(94,185,232,.15))}
       .pf-h2{font-size:20px;font-weight:800;letter-spacing:-.01em;margin:0;line-height:1.3}
       .pill-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:999px;padding:0 13px;height:32px;font-weight:700;font-size:13px;min-height:0;flex:none}
       .pill-link:hover{border-color:var(--accent);color:var(--accent-deep)}
       html[data-theme="dark"] .pill-link:hover{color:#8fd4f7}
-      .lookup-row{display:flex;gap:9px;flex-wrap:wrap}
+      .lookup-row{display:flex;gap:12px;flex-wrap:wrap}
       .lookup-row input{flex:1;min-width:210px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0 13px;height:44px;font-size:14px;color:var(--text);outline:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .lookup-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(94,185,232,.18)}
       @media (max-width:1020px){ .pf-grid{grid-template-columns:1fr} }
+      @media (max-width:680px){ .pf-main{padding:22px 18px} .pf-stats .stat{padding:14px 16px} }
 
       /* ---------- Hero orbit logo (Swap / Stake / Bridge / Portfolio) ----------
          The Vector Pad star floats still above two thin tilted elliptical
@@ -851,7 +899,7 @@
         .split-grid{grid-template-columns:1fr}
         .payout-row{grid-template-columns:minmax(0,1fr) 88px 36px}
         .wrap{padding:0 14px}
-        .page-title{font-size:34px;margin-top:2px}
+        .page-title{font-size:34px;margin-top:6px}
         .page-sub{font-size:14.5px;margin-bottom:18px}
         .stat{padding:10px 12px}
         .stat .val{font-size:20px}
@@ -869,7 +917,7 @@
         .detail-head h1{font-size:26px}
         .price-big{font-size:27px}
         .tech-grid{grid-template-columns:1fr}
-        main{padding-top:20px}
+        main{padding-top:32px}
       }
       @media (prefers-reduced-motion:reduce){
         .ticker-track{animation:none}
@@ -1027,16 +1075,20 @@
     <main class="wrap">
       <!-- ================= EXPLORE ================= -->
       <section class="view active" id="view-explore">
-        <h1 class="page-title serif">Explore</h1>
-        <p class="page-sub">The Vector Pad launch board — memecoins paired with SOL, USDC, or real tokenized stocks on Solana. The first listing, $VECTOR, is on its way.</p>
+        <div class="explore-head">
+          <div class="explore-head-l">
+            <h1 class="page-title serif title-grad">Explore</h1>
+            <p class="page-sub">New coins on Solana.</p>
+          </div>
 
-        <div class="stats" id="statsRow">
-          <div class="stat"><div class="lbl">Listed tokens</div><div class="val num">1</div><div class="sub">$VECTOR · coming soon</div></div>
-          <div class="stat"><div class="lbl">24h Volume</div><div class="val num">—</div><div class="sub">Starts at first launch</div></div>
-          <div class="stat"><div class="lbl">24h Transactions</div><div class="val num">—</div><div class="sub">Starts at first launch</div></div>
-          <div class="stat"><div class="lbl">Pair assets</div><div class="val num">11</div><div class="sub">SOL · USDC · 9 xStocks</div></div>
-          <div class="stat"><div class="lbl">Fees Paid to Creators</div><div class="val num">—</div><div class="sub">Not tracked yet</div></div>
-          <div class="stat"><div class="lbl">24h Buyback</div><div class="val num">—</div><div class="sub">No buyback program yet</div></div>
+          <div class="stats" id="statsRow">
+            <div class="stat"><div class="lbl">Listed tokens</div><div class="val num" id="statListedVal">1</div><div class="sub" id="statListedSub">$VECTOR · soon</div></div>
+            <div class="stat"><div class="lbl">24h Volume</div><div class="val num">—</div><div class="sub">At launch</div></div>
+            <div class="stat"><div class="lbl">24h Transactions</div><div class="val num">—</div><div class="sub">At launch</div></div>
+            <div class="stat"><div class="lbl">Pair assets</div><div class="val num">11</div><div class="sub">SOL · USDC · 9 xStocks</div></div>
+            <div class="stat"><div class="lbl">Fees Paid to Creators</div><div class="val num">—</div><div class="sub">Not tracked yet</div></div>
+            <div class="stat"><div class="lbl">24h Buyback</div><div class="val num">—</div><div class="sub">No buyback program yet</div></div>
+          </div>
         </div>
 
         <div class="tabs" id="filterTabs" role="tablist" aria-label="Token filters">
@@ -1087,8 +1139,8 @@
         </div>
 
         <div class="empty" id="exploreEmpty">
-          <h3 id="emptyTitle">No other tokens yet — be the first to launch</h3>
-          <p id="emptyText">Vector Pad just opened its doors on Solana. Launch the next coin, pair it with SOL, USDC, or a tokenized stock like NVDAx or TSLAx, and it will trade here.</p>
+          <h3 id="emptyTitle">Be the first to launch</h3>
+          <p id="emptyText">Launch a coin — it trades here.</p>
           <button type="button" class="btn btn-grad" data-nav="create" style="height:44px;padding:0 22px">Launch a coin</button>
         </div>
       </section>
@@ -1110,7 +1162,7 @@
               <span class="badge">Pump.fun</span>
               <span class="badge">Solana</span>
             </div>
-            <p class="note-line" style="margin-top:10px;max-width:540px">Contract address: <b>not launched yet.</b> The official CA will be published on this page the moment $VECTOR launches on pump.fun — anything trading under the VECTOR name before then is not official.</p>
+            <p class="note-line" style="margin-top:10px;max-width:540px">CA: <b>not launched yet.</b></p>
           </div>
           <div class="head-actions">
             <button type="button" class="btn btn-ghost watch-btn-lg" id="detailWatchBtn" style="height:40px">
@@ -1122,14 +1174,14 @@
 
         <div class="price-line">
           <span class="price-big">Coming soon</span>
-          <span class="chg-chip" style="background:var(--surface-3);color:var(--muted)">Not launched yet — no price, no chart, nothing to buy</span>
+          <span class="chg-chip" style="background:var(--surface-3);color:var(--muted)">Not launched</span>
         </div>
 
         <div class="detail-stats">
           <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:19px">Coming soon</div></div>
-          <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px">Pump.fun</div><div class="sub">Launch venue</div></div>
+          <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px">Pump.fun</div></div>
           <div class="stat"><div class="lbl">Network</div><div class="val" style="font-size:19px">Solana</div></div>
-          <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px">Not launched</div><div class="sub">CA appears here at launch</div></div>
+          <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px">Not launched</div><div class="sub">At launch</div></div>
           <div class="stat"><div class="lbl">Price</div><div class="val num">—</div></div>
           <div class="stat"><div class="lbl">Market cap</div><div class="val num">—</div></div>
           <div class="stat"><div class="lbl">Holders</div><div class="val num">—</div></div>
@@ -1139,14 +1191,14 @@
           <div style="display:grid;gap:16px;min-width:0">
             <div class="card" id="bondingPanel">
               <h3>Bonding curve <span class="badge" id="bcBadge">Vector Pad program</span></h3>
-              <p class="note-line" style="margin:0 0 12px" id="bcIntro">Coins launched in <b>Bonding curve</b> mode trade here first: price and market cap come straight from the Curve account, buys and sells go through the curve program, and at ~85 SOL of net buys the curve completes — then anyone can graduate it into a Raydium CPMM pool and trading switches to Jupiter / Raydium.</p>
+              <p class="note-line" style="margin:0 0 12px" id="bcIntro">Price from the curve. Graduates to Raydium at ~85 SOL.</p>
               <div class="field" style="margin-bottom:12px">
-                <label for="bcMintInput">Bonding-curve token mint</label>
+                <label for="bcMintInput">Token mint</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <input type="text" id="bcMintInput" placeholder="Paste a mint launched in bonding mode" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 13px;font-size:14px;color:var(--text);font-family:ui-monospace,Menlo,monospace" />
                   <button type="button" class="btn btn-ghost" id="bcLoadBtn" style="height:42px">Load curve</button>
                 </div>
-                <div class="hint" id="bcLoadHint">Tokens you create in bonding mode in this session appear here automatically after launch.</div>
+                <div class="hint" id="bcLoadHint">Your launches appear here.</div>
               </div>
               <div id="bcBody" style="display:none">
                 <div class="detail-stats" style="grid-template-columns:repeat(4,1fr);margin:6px 0 14px">
@@ -1170,7 +1222,7 @@
                 </div>
                 <div class="amt-box">
                   <div class="row"><input type="text" inputmode="decimal" id="bcAmt" placeholder="0" aria-label="Bonding trade amount" /><span class="unit" id="bcAmtUnit">SOL</span></div>
-                  <div class="usd" id="bcQuoteLine">Enter an amount — the quote uses the live virtual reserves (fee 1%: 0.70% protocol / 0.30% creator).</div>
+                  <div class="usd" id="bcQuoteLine">Fee 1%.</div>
                 </div>
                 <div class="quote-meta"><span>Slippage</span><span class="chip-row" id="bcSlipRow"><button type="button" class="chip" data-bslip="50">0.5%</button><button type="button" class="chip active" data-bslip="100">1%</button><button type="button" class="chip" data-bslip="200">2%</button><button type="button" class="chip" data-bslip="500">5%</button></span></div>
                 <button type="button" class="action-btn buy" id="bcTradeBtn">Buy on the curve</button>
@@ -1179,19 +1231,18 @@
                   <button type="button" class="btn btn-ghost" id="bcClaimBtn" style="height:42px">Claim fees</button>
                   <button type="button" class="btn btn-ghost" id="bcRefreshBtn" style="height:42px">Refresh curve</button>
                 </div>
-                <p class="note-line" id="bcMigratedNote" style="display:none">This curve has <b>graduated</b> — bonding buy/sell is off. Trade it on the Swap page: it now routes through Jupiter against its Raydium pool <span id="bcPoolId" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></span>.</p>
+                <p class="note-line" id="bcMigratedNote" style="display:none"><b>Graduated</b> — trade on Swap. Pool <span id="bcPoolId" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></span></p>
                 <div class="tx-status" id="bcStatus"></div>
               </div>
-              <div class="devnet-banner" id="bcNotLive" style="margin-top:12px"><b>Program status:</b> <span id="bcNotLiveTxt">Checking the bonding-curve program on this network…</span></div>
+              <div class="devnet-banner" id="bcNotLive" style="margin-top:12px"><b>Program:</b> <span id="bcNotLiveTxt">Checking…</span></div>
             </div>
 
             <div class="card">
               <h3>Launch status</h3>
-              <p style="margin:0 0 10px;color:var(--muted);font-size:14.5px;line-height:1.6">$VECTOR is the Vector Pad token. It has <b style="color:var(--text)">not launched yet</b> — it will launch on pump.fun, and the moment it does, this page becomes the live token page: real price, real chart, real trading, and staking opens.</p>
-              <p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Until then there is nothing to buy. If you want to trade today, the Swap page routes SOL, USDC and tokenized stocks through Jupiter — or launch your own coin from the Create page and it trades from day one.</p>
+              <p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">$VECTOR launches on pump.fun. This page goes live then — price, chart, trading.</p>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
                 <button type="button" class="btn btn-grad" data-nav="create" style="height:42px">Launch a coin</button>
-                <button type="button" class="btn btn-ghost" data-nav="swap" style="height:42px">Open Swap</button>
+                <button type="button" class="btn btn-ghost" data-nav="swap" style="height:42px">Swap</button>
               </div>
             </div>
 
@@ -1200,22 +1251,22 @@
               <ul class="risk-list">
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg>
-                  <div><b>No official token exists yet.</b> <span>Anything trading under the VECTOR name today is an impostor — it is not connected to Vector Pad.</span></div>
+                  <div><b>No official token yet.</b> <span>Anything trading as VECTOR today is fake.</span></div>
                 </li>
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                  <div><b>Verify the contract address here.</b> <span>The official $VECTOR contract address will be published on this page at launch. Never buy from an address that appears anywhere else first.</span></div>
+                  <div><b>Verify the CA here.</b> <span>Official CA appears on this page at launch — nowhere else first.</span></div>
                 </li>
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
-                  <div><b>Memecoin risk.</b> <span>When $VECTOR does launch it will be a memecoin with no guaranteed utility or returns. Only trade what you can afford to lose.</span></div>
+                  <div><b>Memecoin risk.</b> <span>Can go to zero. Trade only what you can lose.</span></div>
                 </li>
               </ul>
             </div>
 
             <div class="card">
               <h3>Trades</h3>
-              <p class="note-line" style="margin:0">Trading starts the moment $VECTOR launches on pump.fun. Volume, trade counts and the live chart will appear on this page then.</p>
+              <p class="note-line" style="margin:0">Live at launch.</p>
             </div>
 
             <div class="card">
@@ -1236,9 +1287,9 @@
             <img class="logo-light" src="assets/logo-black.png" alt="" style="width:64px;height:64px;object-fit:contain" />
             <img class="logo-dark" src="assets/logo-sky.png" alt="" style="width:64px;height:64px;object-fit:contain" />
             <h3 style="font-size:19px;margin-top:8px">Trading opens at launch</h3>
-            <p class="note-line" style="margin:0 0 16px">$VECTOR launches on pump.fun first. Buy and sell will live right here as soon as the token is live — with the contract address published on this page so you can verify it.</p>
-            <button type="button" class="btn btn-grad" data-nav="swap" style="width:100%;height:46px">Swap other tokens</button>
-            <button type="button" class="btn btn-ghost" data-nav="stake" style="width:100%;height:46px;margin-top:9px">Staking opens at launch too</button>
+            <p class="note-line" style="margin:0 0 16px">Live at launch.</p>
+            <button type="button" class="btn btn-grad" data-nav="swap" style="width:100%;height:46px">Swap</button>
+            <button type="button" class="btn btn-ghost" data-nav="stake" style="width:100%;height:46px;margin-top:9px">Stake SOL</button>
           </div>
         </div>
       </section>
@@ -1339,7 +1390,7 @@
                   <button type="button" class="chip" data-qb="20">20</button>
                 </div>
               </div>
-              <p class="asc-foot">Best route, every time — Jupiter aggregates Solana's liquidity for the quote you sign · Pool fee 0.25% on Raydium pairs, Vector Pad adds nothing · Swaps settle on Solana in seconds · <b>Names repeat — always check the mint address</b></p>
+              <p class="asc-foot">Via Jupiter · Simulated before signing · <b>Check the mint address</b></p>
             </div>
             <aside class="asc-side">
               <div class="asc-panel pop-panel">
@@ -1352,8 +1403,8 @@
 
           <h2 class="sec-title-serif">Before you trade</h2>
           <div class="pos-grid">
-            <div class="gk-item"><h4>Quotes are live for seconds</h4><p>The receive amount above is a live Jupiter quote, refreshed as you type. Prices can move between the quote and your signature — the transaction you sign is the one that counts, and it is simulated first so a stale quote stops instead of filling badly.</p></div>
-            <div class="gk-item"><h4>Your minimum is enforced on-chain</h4><p>“Minimum received” comes from your slippage setting. If the market moves past it while the swap runs, the swap fails rather than filling at a worse price — a failed swap still pays Solana's small network fee, but your tokens stay in your wallet.</p></div>
+            <div class="gk-item"><h4>Live quotes</h4><p>Refreshes as you type. Simulated before signing.</p></div>
+            <div class="gk-item"><h4>Minimum enforced</h4><p>Past your slippage, the swap fails. Funds stay in your wallet.</p></div>
           </div>
         </div>
       </section>
@@ -1364,8 +1415,8 @@
           <div class="stake-hero">
             <div>
               <div class="eyebrow">SOL staking</div>
-              <h1 class="asc-title big" style="margin-top:14px">Stake <span class="grad-word">SOL</span></h1>
-              <p class="asc-sub">Stake SOL straight from your wallet to a validator you choose. Your SOL sits in a stake account you own — delegation hands the validator voting weight, never spending power — and the Solana protocol pays rewards into that account automatically, every epoch.</p>
+              <h1 class="asc-title title-grad" style="margin-top:14px">Stake SOL</h1>
+              <p class="asc-sub">Stake to a validator. Rewards land in your account every epoch.</p>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
                 <span class="pill-status"><span class="dot"></span>Open</span>
                 <span class="pill-status">Staking is live</span>
@@ -1403,7 +1454,7 @@
               <div id="stakeDisconnected">
                 <div class="field" style="margin-bottom:10px">
                   <label>Amount to stake</label>
-                  <p class="hint" style="margin:0;max-width:520px">Connect your wallet to stake SOL from here — you will pick the amount and the validator, review a one-line summary, and sign in your wallet. Staking runs on Solana mainnet.</p>
+                  <p class="hint" style="margin:0;max-width:520px">Connect to stake.</p>
                 </div>
                 <button type="button" class="btn btn-grad" id="stakeConnectBtn" style="height:46px;padding:0 24px">Connect wallet</button>
               </div>
@@ -1424,27 +1475,27 @@
                     <button type="button" data-spreset="100">100</button>
                     <button type="button" data-spreset="1000">1K</button>
                   </div>
-                  <p class="hint">Minimum 0.01 SOL. A new stake account also needs its rent-exempt reserve (≈0.0023 SOL) on top — it comes back to you when you withdraw in full and the account closes.</p>
+                  <p class="hint">Min 0.01 SOL · rent ≈0.0023 SOL, back on close.</p>
                 </div>
                 <div class="field">
                   <label for="stakeValidatorSel">Validator</label>
                   <select id="stakeValidatorSel" aria-label="Validator to delegate to"></select>
-                  <p class="hint" id="validatorHint">Commission is the share of staking rewards the validator keeps. Vote accounts verified on-chain (Stakewiz snapshot, 21 Nov 2026) — and the chosen account is verified again on-chain before anything is built.</p>
+                  <p class="hint" id="validatorHint">Commission = validator's cut. Verified on-chain.</p>
                 </div>
                 <div class="field" id="stakeCustomWrap" style="display:none">
                   <label for="stakeCustomVote">Validator vote account address</label>
                   <input type="text" id="stakeCustomVote" placeholder="Vote account address (base58)" autocomplete="off" spellcheck="false" />
-                  <p class="hint">Checked on-chain before use: it must be a real vote account owned by the Solana Vote program.</p>
+                  <p class="hint">Must be a live vote account.</p>
                 </div>
                 <button type="button" class="btn btn-grad deploy-btn" id="stakeBtn" style="margin-top:2px">Stake SOL</button>
                 <div class="tx-status" id="stakeStatus"></div>
-                <p class="note-line">One transaction creates the stake account and delegates it. Like everything in this app it is simulated first, and you see a one-line summary before your wallet is asked to sign. Rewards are paid by the Solana protocol into your stake account — no rate is promised here, because rewards vary by validator and epoch.</p>
+                <p class="note-line">Simulated first. You sign in your wallet.</p>
               </div>
             </div>
 
             <div data-spane="unstake" style="display:none">
               <div id="unstakeDisconnected">
-                <p class="note-line" style="margin:0;max-width:520px">Connect your wallet to see your stake accounts, deactivate a stake to start its cooldown, and withdraw once an account is fully inactive.</p>
+                <p class="note-line" style="margin:0;max-width:520px">Connect to see your stake.</p>
               </div>
               <div id="stakeAccountsWrap" style="display:none">
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1455,24 +1506,23 @@
                 </div>
                 <div id="stakeAccountsList"><p class="skel" style="padding:14px 0">Loading stake accounts…</p></div>
                 <div class="tx-status" id="stakeAcctStatus"></div>
-                <p class="note-line">Read live from Solana mainnet RPC. Deactivating starts a cooldown: the stake stops earning and becomes withdrawable once fully inactive — normally when the current epoch ends, sometimes one epoch later (≈2–4 days). That is a Solana protocol rule; there is no early-withdraw. Withdrawing the full balance returns the rent reserve and closes the account.</p>
+                <p class="note-line">Cooldown ≈1–2 epochs (2–4 days). Full withdraw returns rent.</p>
               </div>
             </div>
 
             <div data-spane="rewards" style="display:none">
-              <h3 style="margin:0 0 8px;font-size:16px;font-weight:800">How rewards reach you</h3>
-              <p class="note-line" style="margin:0 0 10px;max-width:560px">Native Solana staking has no claim button and no separate rewards balance. At the end of every epoch the protocol credits rewards straight into your stake account, so the account's balance simply grows — minus the validator's commission. What you see in the Unstake tab is principal plus every reward already paid.</p>
+              <h3 style="margin:0 0 8px;font-size:16px;font-weight:800">Rewards</h3>
+              <p class="note-line" style="margin:0 0 10px;max-width:560px">Auto-credited to your stake account each epoch. No claim.</p>
               <p class="note-line" style="margin:0" id="rewEpochTxt">Epoch timing loads when this page opens.</p>
             </div>
           </div>
 
           <h2 class="sec-title-serif">How it works</h2>
-          <p class="sec-sub">The rewards flow, in four moves.</p>
           <div class="how-grid">
-            <div class="how-card"><div class="n">01</div><h4>Create &amp; delegate</h4><p>One transaction opens a stake account in your wallet's name and delegates its SOL to the validator you picked. The SOL never leaves your control — delegation is voting weight, not a transfer of ownership.</p></div>
-            <div class="how-card"><div class="n">02</div><h4>Activation</h4><p>New stake warms up gradually and is fully active from the next epoch boundary. An epoch lasts roughly 2–3 days, and only active stake earns.</p></div>
-            <div class="how-card"><div class="n">03</div><h4>Rewards, every epoch</h4><p>At each epoch's end the protocol pays rewards into your stake account automatically — no claim, no harvest transaction. Your validator keeps the commission shown next to its name; the rest compounds in the account.</p></div>
-            <div class="how-card"><div class="n">04</div><h4>Deactivate &amp; withdraw</h4><p>Deactivating takes effect at the next epoch boundary; the stake then cools down and stops earning. Once fully inactive — usually 1–2 epochs — you withdraw the whole balance, rent reserve included, and the account closes.</p></div>
+            <div class="how-card"><div class="n">01</div><h4>Create &amp; delegate</h4><p>One tx. SOL stays yours.</p></div>
+            <div class="how-card"><div class="n">02</div><h4>Activation</h4><p>Active from the next epoch (~2–3 days).</p></div>
+            <div class="how-card"><div class="n">03</div><h4>Rewards</h4><p>Paid in each epoch. No claim.</p></div>
+            <div class="how-card"><div class="n">04</div><h4>Withdraw</h4><p>Deactivate, cool down, withdraw in full.</p></div>
           </div>
 
           <h2 class="sec-title-serif">Your position and rewards</h2>
@@ -1480,7 +1530,7 @@
             <div class="how-card">
               <h4 style="margin-top:0">Your stake</h4>
               <div id="posDisconnected">
-                <p>Connect your wallet to see how much SOL you have staked, which validators hold the delegation, and each account's status.</p>
+                <p>Connect to see your stake.</p>
                 <button type="button" class="btn btn-grad" id="posConnectBtn" style="height:42px;padding:0 20px;margin-top:12px">Connect wallet</button>
               </div>
               <div id="posConnected" style="display:none">
@@ -1493,20 +1543,19 @@
               </div>
             </div>
             <div class="how-card">
-              <h4 style="margin-top:0">This round's rewards</h4>
-              <p id="rewSummary">Rewards are not a separate pot waiting somewhere. Each epoch the protocol adds them to your stake accounts automatically, so your staked balance grows on its own — there is nothing to claim and no claim button to press.</p>
-              <p style="margin-top:10px">The exact amount varies with your validator's performance and commission, which is why this page shows your real account balances instead of an estimated rate.</p>
+              <h4 style="margin-top:0">Rewards</h4>
+              <p id="rewSummary">Credited automatically each epoch. Nothing to claim.</p>
             </div>
           </div>
 
           <h2 class="sec-title-serif">Good to know</h2>
           <div class="gk-list">
-            <div class="gk-item"><h4>Who runs my stake?</h4><p>You do. The stake account belongs to your wallet and only your wallet can deactivate or withdraw it. Vector Pad just builds the transactions; the validator you delegate to can vote with the stake's weight but can never move or spend the SOL.</p></div>
-            <div class="gk-item"><h4>Can the rules change?</h4><p>The staking rules are Solana protocol rules — activation, cooldown and reward timing are the same on every interface. What can change is your validator's commission: validators set their own rate, so it is worth checking the rate next to their name from time to time.</p></div>
-            <div class="gk-item"><h4>When are rewards paid?</h4><p>At the end of every epoch — roughly every 2–3 days — directly into your stake account. There is no claim step: if your stake was active for the epoch, the reward is already in the balance you see.</p></div>
-            <div class="gk-item"><h4>How much will I earn?</h4><p>It varies. Rewards come from network inflation and fees, depend on your validator's uptime and commission, and are never guaranteed — which is why no APY is quoted on this page. Anyone promising a fixed staking rate is guessing.</p></div>
-            <div class="gk-item"><h4>What is a stake account?</h4><p>A separate on-chain account that holds staked SOL and records who it is delegated to. One wallet can own many stake accounts — one per stake you open here — and each needs a small rent-exempt reserve (≈0.0023 SOL) that you get back when the account closes.</p></div>
-            <div class="gk-item"><h4>How fast can I unstake?</h4><p>Deactivation takes effect at the next epoch boundary, then the stake cools down for about one more epoch before it can be withdrawn — plan on roughly 2–4 days in total. That delay is a protocol rule; no interface can skip it.</p></div>
+            <div class="gk-item"><h4>Who runs my stake?</h4><p>You. Only your wallet can deactivate or withdraw.</p></div>
+            <div class="gk-item"><h4>Can the rules change?</h4><p>Protocol rules are fixed. Validator commission can change — check it.</p></div>
+            <div class="gk-item"><h4>When are rewards paid?</h4><p>End of every epoch (~2–3 days), into your account.</p></div>
+            <div class="gk-item"><h4>How much will I earn?</h4><p>Varies by validator. No APY promised.</p></div>
+            <div class="gk-item"><h4>What is a stake account?</h4><p>Holds your staked SOL. Rent ≈0.0023 SOL, back on close.</p></div>
+            <div class="gk-item"><h4>How fast can I unstake?</h4><p>≈2–4 days. Protocol cooldown.</p></div>
           </div>
         </div>
       </section>
@@ -1516,7 +1565,7 @@
         <div class="asc-page">
           <div class="bridge-hero">
             <div>
-              <h1 class="asc-title">Bridge</h1>
+              <h1 class="asc-title title-grad">Bridge</h1>
               <p class="asc-sub">Move assets between Solana and Ethereum.</p>
               <div class="asc-rule"></div>
             </div>
@@ -1557,21 +1606,20 @@
               <button type="button" id="bTabDeposit" class="active" role="tab">Deposit</button>
               <button type="button" id="bTabWithdraw" role="tab">Withdraw</button>
             </div>
-            <p class="note-line" id="bridgeDirNote" style="margin:13px 2px 0">Deposit moves assets from Solana to Ethereum. In the widget below, set <b>From: Solana</b> and <b>To: Ethereum</b> — Wormhole's guardian network verifies the transfer and you sign on Solana.</p>
+            <p class="note-line" id="bridgeDirNote" style="margin:13px 2px 0">Solana → Ethereum. In the widget: <b>From: Solana · To: Ethereum</b>.</p>
             <div class="fee-rows" id="bridgeFeeRows">
               <div class="fr"><span>Arrives in</span><span class="num">—</span></div>
               <div class="fr"><span>Bridge fee</span><span class="num">—</span></div>
               <div class="fr"><span>Network fee</span><span class="num">—</span></div>
             </div>
-            <p class="note-line" style="margin:10px 2px 0">Arrival time and fees are quoted live inside the widget as soon as you pick a route — nothing is charged or held by this page.</p>
             <div style="border-top:1px solid var(--stage-border);margin-top:16px;padding-top:6px">
               <div id="bridgeLoading" style="padding:30px 18px;text-align:center">
                 <span class="spin"></span>
-                <p class="note-line" style="margin-top:10px">Loading the Wormhole bridge widget…</p>
+                <p class="note-line" style="margin-top:10px">Loading…</p>
               </div>
               <div id="bridgeError" style="display:none;padding:30px 18px;text-align:center">
-                <h3 style="margin:0 0 6px;font-size:18px">The bridge widget could not load</h3>
-                <p class="note-line" style="margin:0 auto 16px;max-width:440px">Wormhole Connect loads from the Wormhole CDN. Check your connection, then try again — nothing was sent anywhere.</p>
+                <h3 style="margin:0 0 6px;font-size:18px">Widget failed to load</h3>
+                <p class="note-line" style="margin:0 auto 16px;max-width:440px">Check your connection and retry.</p>
                 <button type="button" class="btn btn-grad" id="bridgeRetryBtn" style="height:44px;padding:0 22px">Retry</button>
               </div>
               <div id="wormhole-connect"></div>
@@ -1580,15 +1628,15 @@
 
           <h2 class="sec-title-serif">How it works</h2>
           <div class="how-grid c3">
-            <div class="how-card"><div class="n">01</div><h4>Send</h4><p>In the widget you connect the source wallet, pick the asset and amount, and sign the send transaction on the source chain. Your assets go to Wormhole's bridge contract — Vector Pad never touches them.</p></div>
-            <div class="how-card"><div class="n">02</div><h4>Confirm</h4><p>Wormhole's guardian network watches the source chain, waits for finality, and signs an attestation (a VAA). Leaving Solana this usually takes several minutes; busy periods and slower source chains take longer.</p></div>
-            <div class="how-card"><div class="n">03</div><h4>Receive or claim</h4><p>Routes with an automatic relayer deliver straight to your destination wallet. Manual routes ask you to claim (redeem) on the destination chain inside the widget — if you closed the tab, “Resume Transaction” in the widget picks the transfer back up.</p></div>
+            <div class="how-card"><div class="n">01</div><h4>Send</h4><p>Sign in the widget. Assets go to Wormhole, not Vector Pad.</p></div>
+            <div class="how-card"><div class="n">02</div><h4>Confirm</h4><p>Guardians verify and sign a VAA. Usually a few minutes.</p></div>
+            <div class="how-card"><div class="n">03</div><h4>Receive</h4><p>Auto-delivered, or claim in the widget.</p></div>
           </div>
 
           <h2 class="sec-title-serif">Before you bridge</h2>
           <div class="pos-grid">
-            <div class="gk-item"><h4>Check the address</h4><p>A Solana address and an Ethereum address are different formats, and a bridge transfer cannot be reversed or rerouted. Paste the destination address from the wallet that should receive the funds, and check the first and last characters before you sign.</p></div>
-            <div class="gk-item"><h4>Mind the minimum</h4><p>Bridge and network fees come out of the transfer, so very small amounts can arrive as almost nothing — or fail a route's minimum entirely. Read the live quote inside the widget: it shows exactly what arrives on the other side before you confirm.</p></div>
+            <div class="gk-item"><h4>Check the address</h4><p>Bridges can't be reversed. Check first/last characters.</p></div>
+            <div class="gk-item"><h4>Mind the minimum</h4><p>Fees come out of the transfer. The widget shows what arrives.</p></div>
           </div>
         </div>
       </section>
@@ -1596,21 +1644,21 @@
       <!-- ================= PORTFOLIO ================= -->
       <section class="view" id="view-portfolio">
         <h1 class="page-title serif md title-grad">Portfolio</h1>
-        <p class="page-sub" style="margin-bottom:0">What you hold, what it's worth and what it has paid you.</p>
+        <p class="page-sub" style="margin-bottom:0">Your coins and stake.</p>
         <div class="pf-rule"></div>
 
         <div class="pf-grid">
           <div class="pf-main">
             <div id="pfDisconnected">
               <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-                <h2 class="pf-h2" style="flex:1;min-width:240px">Connect a wallet to see your coins and what they've paid you.</h2>
+                <h2 class="pf-h2" style="flex:1;min-width:240px">Connect to see your coins.</h2>
                 <button type="button" class="btn btn-black" id="pfConnectBtn" style="height:46px;padding:0 22px">Connect wallet</button>
               </div>
-              <p class="note-line" style="margin:12px 0 0">Balances are read live from Solana mainnet. Nothing is shown — or stored — until you connect.</p>
+              <p class="note-line" style="margin:16px 0 0">Live from Solana mainnet.</p>
             </div>
 
             <div id="pfConnected" style="display:none">
-              <div class="stats pf-stats" style="margin:0 0 18px">
+              <div class="stats pf-stats" style="margin:0 0 30px">
                 <div class="stat"><div class="lbl">Wallet</div><div class="val num" id="pfAddr" style="font-size:17px">—</div><div class="sub"><a href="#" id="pfCopyAddr" style="color:var(--accent-deep);font-weight:700">Copy address</a></div></div>
                 <div class="stat"><div class="lbl">Network</div><div class="val" id="pfNet" style="font-size:17px">—</div><div class="sub">Live network</div></div>
                 <div class="stat"><div class="lbl">SOL balance</div><div class="val num" id="pfSol">—</div><div class="sub">Read live from RPC</div></div>
@@ -1623,17 +1671,16 @@
                 <button type="button" class="btn btn-ghost" id="pfRefreshBtn" style="height:36px;font-size:13.5px">Refresh</button>
               </div>
               <div id="pfHoldings"><p class="skel" style="padding:14px 0">Loading balances…</p></div>
-              <p class="note-line">Read directly from Solana mainnet RPC. Token names are shown for the pair assets this app knows (SOL, USDC, xStocks); other tokens show their mint address.</p>
+              <p class="note-line">Live from RPC.</p>
 
-              <div style="border-top:1px solid var(--border);margin-top:18px;padding-top:16px">
-                <h3 style="margin:0 0 4px;font-size:16px;font-weight:800">Launched in this session</h3>
-                <div id="pfLaunched"><p class="note-line" style="margin:0">Nothing launched yet in this session. Coins you deploy from the Create page will be listed here with their mint and pool.</p></div>
+              <div style="border-top:1px solid var(--border);margin-top:30px;padding-top:26px">
+                <h3 style="margin:0 0 8px;font-size:16px;font-weight:800">Launched in this session</h3>
+                <div id="pfLaunched"><p class="note-line" style="margin:0">Nothing launched yet.</p></div>
               </div>
             </div>
 
-            <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:18px">
-              <div style="font-weight:800;font-size:14px">Look up any wallet</div>
-              <p class="note-line" style="margin:4px 0 12px">Look up a wallet by address to see its coins.</p>
+            <div style="border-top:1px solid var(--border);margin-top:30px;padding-top:26px">
+              <div style="font-weight:800;font-size:14px;margin-bottom:16px">Look up any wallet</div>
               <div class="lookup-row">
                 <input type="text" id="lookupInput" placeholder="Solana wallet address (base58)" autocomplete="off" spellcheck="false" aria-label="Wallet address to look up" />
                 <button type="button" class="btn btn-black" id="lookupBtn" style="height:44px" disabled>Look up a wallet</button>
@@ -1649,8 +1696,8 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
               </button>
             </div>
-            <p class="note-line" id="pfStakeText" style="margin:12px 0 16px">Connect to see your stake.</p>
-            <div style="display:flex;gap:9px">
+            <p class="note-line" id="pfStakeText" style="margin:14px 0 22px">Connect to see your stake.</p>
+            <div style="display:flex;gap:12px">
               <button type="button" class="btn btn-black" data-goto-stake="stake" style="flex:1;height:44px">Deposit</button>
               <button type="button" class="btn btn-ghost" data-goto-stake="unstake" style="flex:1;height:44px">Redeem</button>
             </div>
@@ -1660,8 +1707,8 @@
 
       <!-- ================= CREATE ================= -->
       <section class="view" id="view-create">
-        <h1 class="page-title serif">Launch a coin</h1>
-        <p class="page-sub">Two ways to launch. <b>Bonding curve</b> (pump.fun-style): create for ~0.01 SOL in rent, the full 1B supply sits in the curve, people buy from the curve, and the Raydium pool opens automatically at graduation (~85 SOL). <b>Direct Raydium</b>: supply mints to your wallet and you seed the pool yourself (~0.21 SOL in costs).</p>
+        <h1 class="page-title serif title-grad">Launch a coin</h1>
+        <p class="page-sub">Bonding curve, or direct Raydium pool.</p>
 
         <div class="create-grid">
           <form class="card" id="createForm" novalidate>
@@ -1670,16 +1717,16 @@
               <div class="mode-grid" id="launchModeGrid">
                 <button type="button" class="mode-opt active" data-mode="bonding">
                   <span class="t-name">Bonding curve · like pump.fun</span>
-                  <span class="t-desc">Supply is held by the curve, not your wallet. You only get tokens by buying them on the curve. At ~85 SOL of net buys the curve completes and anyone can graduate it into a Raydium CPMM pool (LP burned).</span>
-                  <span class="t-split">Create ≈ 0.01 SOL rent · Trade fee 1% (0.70% protocol / 0.30% creator)</span>
+                  <span class="t-desc">Supply sits in the curve. Graduates to Raydium at ~85 SOL.</span>
+                  <span class="t-split">Create ≈ 0.01 SOL · Fee 1%</span>
                 </button>
                 <button type="button" class="mode-opt" data-mode="raydium">
                   <span class="t-name">Direct Raydium pool</span>
-                  <span class="t-desc">The full 1B supply mints straight to your wallet, then you seed a Raydium CPMM pool with part of it. Tradable on Raydium / Jupiter from the first minute.</span>
-                  <span class="t-split">Create ≈ 0.21 SOL costs + your seed</span>
+                  <span class="t-desc">1B mints to your wallet. You seed the pool.</span>
+                  <span class="t-split">Create ≈ 0.21 SOL + seed</span>
                 </button>
               </div>
-              <div class="devnet-banner" id="bondingProgramBanner"><b>Bonding curve program:</b> <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px">3P1BD4cwPHAozg7unLo28kBj7Bm3W9mTtVrK3b6s21S7</span> — built and unit-tested (8/8), deployed on mainnet. <span id="bondingProgramState">Checking whether it is deployed on this network…</span> On a network where it is not deployed, bonding-curve launches show this honest state instead of sending anything: <b>bonding curve launches when the program is deployed</b>. The Direct Raydium mode below works either way and is unchanged.</div>
+              <div class="devnet-banner" id="bondingProgramBanner"><b>Program</b> <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px">3P1BD4cwPHAozg7unLo28kBj7Bm3W9mTtVrK3b6s21S7</span> · <span id="bondingProgramState">Checking…</span></div>
             </div>
             <ol class="steps" id="stepBar">
               <li data-goto="1" class="active"><span class="n">1</span><span class="t">Identity</span></li>
@@ -1710,7 +1757,7 @@
                 <div>
                   <label class="btn btn-ghost" for="inImage" style="height:38px;font-size:13.5px">Upload image</label>
                   <input type="file" id="inImage" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" />
-                  <div class="hint" style="margin-top:8px">PNG, JPG, WEBP or GIF, up to 5 MB. Square works best.</div>
+                  <div class="hint" style="margin-top:8px">PNG · JPG · WEBP · GIF · max 5 MB</div>
                   <div class="err" id="imgErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:6px"></div>
                 </div>
               </div>
@@ -1718,7 +1765,7 @@
             <div class="field">
               <label for="inDesc">Description</label>
               <textarea id="inDesc" maxlength="400" placeholder="What is this coin about?"></textarea>
-              <div class="hint"><span id="descCount">0</span>/400 — shown on your token page.</div>
+              <div class="hint"><span id="descCount">0</span>/400</div>
             </div>
             <div class="field">
               <label for="inWebsite">Website <span style="color:var(--faint);font-weight:600">(optional)</span></label>
@@ -1735,32 +1782,44 @@
             <div class="field">
               <label for="inSupply">Total supply</label>
               <input type="text" id="inSupply" value="1,000,000,000" disabled aria-disabled="true" />
-              <div class="hint">Fixed at 1 billion. Mint authority is revoked at launch.</div>
+              <div class="hint">Fixed 1B. Authority revoked at launch.</div>
             </div>
             </div>
 
             <div class="step-pane" data-step="2">
             <div id="bondingStep2" style="display:none">
               <div class="field">
-                <label>How the bonding curve works</label>
-                <div class="hint" style="margin:0 0 10px">No pair to pick and no seed to provide — the pair is always <b>SOL</b> and the curve <i>is</i> the market until graduation.</div>
+                <label>Bonding curve</label>
+                <div class="hint" style="margin:0 0 10px">Pair: <b>SOL</b>. The curve is the market until graduation.</div>
                 <div class="tech-grid">
-                  <div><div class="k">Total supply</div><div class="v">1,000,000,000 · 6 decimals</div></div>
-                  <div><div class="k">For sale on curve</div><div class="v">793,100,000 (79.31%)</div></div>
-                  <div><div class="k">Reserved for Raydium pool</div><div class="v">206,900,000 (20.69%)</div></div>
-                  <div><div class="k">Virtual reserves at launch</div><div class="v">30 SOL / 1,073,000,000 tokens</div></div>
-                  <div><div class="k">Graduation</div><div class="v">~85 SOL net buys · mcap ~411 SOL · ~14.7× launch price</div></div>
-                  <div><div class="k">Trade fee</div><div class="v">1% — 0.70% protocol · 0.30% creator</div></div>
-                  <div><div class="k">Your create cost</div><div class="v">~0.01 SOL rent only — no seed, no pool fee</div></div>
-                  <div><div class="k">Mint authority</div><div class="v">Revoked at create (by the program)</div></div>
+                  <div><div class="k">Total supply</div><div class="v">1,000,000,000</div></div>
+                  <div><div class="k">For sale</div><div class="v">793,100,000</div></div>
+                  <div><div class="k">Reserved for pool</div><div class="v">206,900,000</div></div>
+                  <div><div class="k">Virtual reserves</div><div class="v">30 SOL / 1.073B</div></div>
+                  <div><div class="k">Graduation</div><div class="v">~85 SOL</div></div>
+                  <div><div class="k">Trade fee</div><div class="v">1%</div></div>
+                  <div><div class="k">Create cost</div><div class="v">~0.01 SOL</div></div>
+                  <div><div class="k">Mint authority</div><div class="v">Revoked</div></div>
                 </div>
-                <div class="hint" style="margin-top:10px">Your wallet receives <b>zero</b> tokens at create — exactly like pump.fun. To hold your own coin, buy it on the curve after launch (your first buy can be right after creating). The optional initial buy in Step 3 of the old flow does not apply here; use the token page's Buy panel instead.</div>
+              </div>
+              <div class="field" id="fInitBuy" style="margin-top:18px;margin-bottom:0">
+                <label for="initBuyAmt">Initial buy <span style="color:var(--faint);font-weight:600">(optional)</span></label>
+                <div class="initbuy-row"><input type="text" inputmode="decimal" id="initBuyAmt" placeholder="0" autocomplete="off" aria-label="Initial buy in SOL" /><span class="unit">SOL</span></div>
+                <div class="chip-row" id="initBuyPresets" style="margin-top:10px" role="group" aria-label="Initial buy presets">
+                  <button type="button" class="chip active" data-ibuy="0">None</button>
+                  <button type="button" class="chip" data-ibuy="0.1">0.1</button>
+                  <button type="button" class="chip" data-ibuy="0.5">0.5</button>
+                  <button type="button" class="chip" data-ibuy="1">1</button>
+                  <button type="button" class="chip" data-ibuy="2">2</button>
+                  <button type="button" class="chip" data-ibuy="5">5</button>
+                </div>
+                <div class="hint" id="initBuyQuote" style="margin-top:8px">Same transaction as create. 0 = skip.</div>
+                <div class="err">Enter 0, or 0.0001 SOL and up — below what the curve holds.</div>
               </div>
             </div>
             <div id="raydiumStep2">
             <div class="field" id="fPair">
               <label>Pair asset</label>
-              <div class="hint" style="margin:0 0 4px">Your token's pool is priced in the asset you pick.</div>
               <div class="pair-group-lbl">Crypto</div>
               <div class="pair-grid" id="pairCrypto"></div>
               <div class="pair-group-lbl">Tokenized stocks · xStocks by Backed</div>
@@ -1769,8 +1828,8 @@
               <div class="err">Pick a pair asset.</div>
             </div>
             <div class="field" id="fSeed">
-              <label>Seed liquidity — you choose the amount</label>
-              <div class="hint" style="margin:0 0 10px">The pool opens with these two deposits — their ratio sets the opening price. Your full 1B supply is minted to your wallet first; only the seed amount goes into the pool, the rest stays in your wallet. <b>The pair-asset seed is your liquidity, not a fee</b> — it stays in the pool as your LP position. Start small if you want: 0.05 SOL is enough to open a pool. The only fixed extra is ≈0.21 SOL of one-off creation costs (mint rent + Raydium pool rent/fees), paid on top of whatever seed you pick.</div>
+              <label>Seed liquidity</label>
+              <div class="hint" style="margin:0 0 10px">Ratio sets the opening price. Seed stays as your LP. Creation ≈0.21 SOL on top.</div>
               <div class="split-grid" style="grid-template-columns:1fr 1fr">
                 <div><span class="split-lbl">Your token amount</span><span class="split-in"><input type="text" inputmode="decimal" id="seedTokenAmt" value="100,000,000" autocomplete="off" /></span></div>
                 <div><span class="split-lbl">Pair asset amount</span><span class="split-in"><input type="text" inputmode="decimal" id="seedPairAmt" value="0.1" autocomplete="off" /><span id="seedPairUnit">SOL</span></span></div>
@@ -1790,10 +1849,10 @@
             </div>
 
             <div class="step-pane" data-step="3">
-            <div class="devnet-banner" id="bondingFeeNote" style="display:none"><b>Bonding mode:</b> the curve fee is fixed by the program at <b>1%</b> on every buy and sell — <b>0.70%</b> to the protocol wallet, <b>0.30%</b> to you as creator, collected with <b>Claim fees</b> on the token page. The slider below only applies to Direct Raydium launches, so you can skip this step.</div>
+            <div class="devnet-banner" id="bondingFeeNote" style="display:none"><b>Bonding:</b> fee fixed at <b>1%</b>. Skip — the slider is for Raydium.</div>
             <div class="field">
               <label>Trading fee</label>
-              <div class="hint" style="margin:0 0 12px">Charged on every buy and sell of your coin, on top of normal pool fees. What happens to it depends on your coin type — that's the next step.</div>
+              <div class="hint" style="margin:0 0 12px">On every trade.</div>
               <div class="fee-big"><span id="feeVal">2</span>%</div>
               <input type="range" id="feeRange" min="1" max="10" step="0.5" value="2" aria-label="Trading fee percent" />
               <div class="fee-scale"><span>1% · lean</span><span>10% · max</span></div>
@@ -1811,27 +1870,26 @@
             <div class="step-pane" data-step="4">
             <div class="field" style="margin-bottom:12px">
               <label>Coin type</label>
-              <div class="hint" style="margin:0">How should your coin's trading fees be used?</div>
             </div>
             <div class="type-grid" id="typeGrid">
               <button type="button" class="type-opt active" data-type="vanilla">
                 <span class="t-name">Vanilla</span>
-                <span class="t-desc">Fees are paid directly to your payout wallets. The classic creator launch — simple, all yours.</span>
+                <span class="t-desc">Fees to your wallets.</span>
                 <span class="t-split">100% creator payouts</span>
               </button>
               <button type="button" class="type-opt" data-type="holders">
                 <span class="t-name">Holder Rewards</span>
-                <span class="t-desc">Share the fees with everyone holding your coin, paid out pro-rata to holders.</span>
+                <span class="t-desc">Fees shared with holders.</span>
                 <span class="t-split">50% payouts · 50% holders</span>
               </button>
               <button type="button" class="type-opt" data-type="buyback">
                 <span class="t-name">Buyback</span>
-                <span class="t-desc">Fees automatically buy back your own token from the market, supporting the price.</span>
+                <span class="t-desc">Fees buy back your token.</span>
                 <span class="t-split">100% buyback</span>
               </button>
               <button type="button" class="type-opt" data-type="custom">
                 <span class="t-name">Custom Mix</span>
-                <span class="t-desc">Set your own split between creator payouts, holder rewards, and buyback.</span>
+                <span class="t-desc">Your own split.</span>
                 <span class="t-split">You set the %</span>
               </button>
             </div>
@@ -1862,15 +1920,14 @@
 
             <div class="step-pane" data-step="6">
             <div class="field" style="margin-bottom:10px">
-              <label>Review &amp; execute</label>
-              <div class="hint" style="margin:0">Check everything below — this is exactly what gets deployed on Solana.</div>
+              <label>Review</label>
             </div>
             <div id="reviewBox"></div>
-            <div class="devnet-banner" id="devnetBanner" style="display:none"><b>Devnet mode — practice money.</b> This launch runs on Solana devnet: the SOL is free test SOL with no real value, and the pool lives on devnet only. Get devnet SOL from the <a href="https://faucet.solana.com" target="_blank" rel="noopener">Solana faucet</a> (paste your wallet address, choose Devnet), then deploy here exactly like a real launch. Switch back to Mainnet in the header when you are ready for the real thing.<span id="devnetFeeNote"></span></div>
+            <div class="devnet-banner" id="devnetBanner" style="display:none"><b>Devnet</b> — test SOL only. Get it from the <a href="https://faucet.solana.com" target="_blank" rel="noopener">faucet</a>.<span id="devnetFeeNote"></span></div>
             <button type="button" class="btn btn-grad deploy-btn" id="deployBtn">Connect wallet to deploy</button>
             <div class="tx-status" id="deployStatus"></div>
-            <p class="note-line" id="deployNote">Deployment runs two transactions from your wallet: (1) create the Token-2022 mint, mint the full 1B supply to you, and revoke the mint authority; (2) open the Raydium CPMM pool with your seed liquidity (pool creation costs ~0.19 SOL). Every transaction is simulated first — if simulation fails, nothing is sent. LP tokens go to your wallet and are <b>not</b> auto-locked.</p>
-            <p class="note-line" id="bondingDeployNote" style="display:none">Bonding mode is <b>one</b> transaction: <b>create_curve</b> on the Vector Pad bonding-curve program. The program creates the mint itself, puts the full 1B supply in the curve vault (793.1M for sale, 206.9M reserved for the future Raydium pool), revokes the mint authority, and sets the Metaplex metadata. You pay only rent (~0.01 SOL) and receive <b>no tokens</b> — buy them on the curve from the token page. Protocol wallet (0.70% fee share): <span style="font-family:ui-monospace,Menlo,monospace">FQQpuHZWMowwVNWoYNjovdMA9FqLPqSWmddaAdRFHLCb</span>. Simulated first, like every flow here.</p>
+            <p class="note-line" id="deployNote">Two txs: mint, then pool (~0.19 SOL). Simulated first. LP to your wallet, unlocked.</p>
+            <p class="note-line" id="bondingDeployNote" style="display:none">One tx: <b>create_curve</b> + your initial buy, if set. Rent ≈0.01 SOL. Simulated first.</p>
             </div>
 
             <div class="wiz-nav">
@@ -1896,7 +1953,6 @@
             <div class="sum-row"><span class="k">Payouts</span><span class="v" id="sumPayouts">Not set</span></div>
             <div class="sum-row"><span class="k">Seed liquidity</span><span class="v" id="sumInit">None</span></div>
             <div class="sum-row"><span class="k">Mint authority</span><span class="v">Revoked at launch</span></div>
-            <p class="note-line">Six steps: identity, pair, fee, coin type, payouts, then review &amp; deploy. This card tracks your choices as you go.</p>
           </div>
         </div>
       </section>
@@ -1909,7 +1965,7 @@
           <span><b>Vector Pad</b> · Documentation</span>
         </p>
         <h1 class="docs-title">Docs</h1>
-        <p class="page-sub" style="margin-bottom:18px">Everything Vector Pad does, how each part works, and exactly what it costs — no invented numbers, no fine print.</p>
+        <p class="page-sub" style="margin-bottom:18px">How it works. What it costs.</p>
 
         <div class="docs-layout">
           <aside class="docs-side">
@@ -2158,7 +2214,7 @@
     <footer class="site">
       <div class="wrap foot-grid">
         <div class="foot-disc">
-          <p>Vector Pad is a front-end for open protocols on Solana. It holds no funds and keeps no accounts. If you didn't sign it, it didn't happen.</p>
+          <p>Front-end for open protocols on Solana. No custody.</p>
         </div>
         <nav class="foot-col" aria-label="Learn">
           <h4>Learn</h4>
@@ -2193,7 +2249,7 @@
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
         </div>
-        <p>A wallet stores your crypto and signs trades. Connecting is free and moves no money.</p>
+        <p>Connect to sign. No funds move.</p>
         <div class="wm-label">Connect with</div>
         <div class="wm-alert" id="wmNetAlert" role="alert" hidden>
           <div class="wa-title" id="wmNetAlertTitle"></div>
@@ -2202,7 +2258,7 @@
           <p class="wa-alt" id="wmNetAlertAlt"></p>
         </div>
         <div class="wm-list" id="walletList"></div>
-        <p class="wm-note">Vector Pad runs on Solana — only Solana wallets can connect and sign here. Don't have one yet? Pick a wallet above and you'll be taken to its official site to install it.</p>
+        <p class="wm-note">Solana wallets only.</p>
       </div>
     </div>
 
@@ -2218,8 +2274,8 @@
     <!-- All trades modal (live Solana trades via GeckoTerminal) -->
     <div class="modal-back" id="tradesModal" role="dialog" aria-modal="true" aria-labelledby="tradesTitle">
       <div class="modal doc-modal">
-        <h3 id="tradesTitle">Latest trades on Solana</h3>
-        <p style="margin-bottom:6px">The most recent buys and sells across Solana's highest-volume pools, read live from GeckoTerminal.</p>
+        <h3 id="tradesTitle">Latest trades</h3>
+        <p style="margin-bottom:6px">Live · GeckoTerminal.</p>
         <div id="tradesBody"><p class="skel" style="padding:12px 0"><span class="spin"></span> Loading live trades…</p></div>
         <button type="button" class="btn btn-ghost" id="tradesClose" style="width:100%;margin-top:16px;height:42px">Close</button>
       </div>
@@ -2640,6 +2696,7 @@
     }
 
     /* ================= Explore board: $VECTOR (coming soon) ================= */
+    var boardRowEl = null, boardCardEl = null;
     function renderBoard(){
       /* table row — $VECTOR has not launched, so every market figure is an honest dash */
       var row = document.createElement("tr");
@@ -2668,6 +2725,7 @@
       wb.addEventListener("click", function(){ toggleWatch(wb); });
       if(state.watched) wb.classList.add("on");
       $("tokenRows").innerHTML=""; $("tokenRows").appendChild(row);
+      boardRowEl = row;
 
       /* grid card */
       var card = el(
@@ -2690,6 +2748,7 @@
       cwb.addEventListener("click", function(){ toggleWatch(cwb); });
       if(state.watched) cwb.classList.add("on");
       $("tokenGrid").innerHTML=""; $("tokenGrid").appendChild(card);
+      boardCardEl = card;
     }
     function starSVG(){
       return '<svg width="17" height="17" viewBox="0 0 24 24" fill="'+ 'none' +'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8L12 3Z"/></svg>';
@@ -2715,6 +2774,172 @@
       this.querySelector("span").textContent = state.watched ? "Watching" : "Watch";
     });
 
+    /* ================= Explore: bonding curves, read live from the program =================
+       Explore used to list only tokens that already had a DEX pool, so a
+       token still trading on its bonding curve never showed up. This scans
+       every Curve account owned by the Vector Pad program
+       (getProgramAccounts, dataSize 195) and lists each launch with price,
+       market cap and graduation progress computed from the account's
+       virtual reserves. Names and symbols come from each mint's Metaplex
+       metadata account. Figures the curve account does not carry (24h
+       volume, trades, holders) stay as honest dashes. */
+    var exploreCurves = [];        /* [{mint, curve, name, sym, uri, priceSol, mcapSol, solIn, progress, complete, migrated}] */
+    var exploreCurvesNet = null;   /* network the list belongs to */
+    var exploreCurvesBusy = false;
+
+    function bcParseMetadata(data){
+      /* Metaplex metadata: key(1) updateAuthority(32) mint(32), then borsh
+         strings name / symbol / uri (u32 length + bytes, \0-padded). */
+      if(!data || data.length < 69) return null;
+      var dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      var pos = 65;
+      function str(){
+        if(pos + 4 > data.length) return "";
+        var len = dv.getUint32(pos, true); pos += 4;
+        if(len > 512 || pos + len > data.length) return "";
+        var bytes = data.slice(pos, pos + len); pos += len;
+        return new TextDecoder().decode(bytes).split("\0")[0].trim();
+      }
+      var name = str(), sym = str(), uri = str();
+      if(!name && !sym) return null;
+      return { name: name, sym: sym, uri: uri };
+    }
+    function bcMetaImage(uri){
+      if(!uri) return null;
+      if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(uri)) return uri;
+      return fetch(uri).then(function(r){ return r.json(); }).then(function(j){ return (j && (j.image || j.image_url)) || null; }).catch(function(){ return null; });
+    }
+    function setCurveImg(mint, url){
+      var probe = new Image();
+      probe.onload = function(){
+        document.querySelectorAll('img[data-curve-img="' + mint + '"]').forEach(function(im){ im.src = url; });
+      };
+      probe.src = url;
+    }
+    async function loadExploreCurves(){
+      if(exploreCurvesBusy) return;
+      if(exploreCurvesNet === state.network){ renderCurveRows(); return; }
+      if(!stack()){ setTimeout(loadExploreCurves, 2500); return; }
+      exploreCurvesBusy = true;
+      try {
+        var params = [BONDING_CURVE_PROGRAM_ID, { encoding: "base64", filters: [{ dataSize: 195 }] }];
+        var j = await rpc("getProgramAccounts", params).catch(function(){ return null; });
+        if(!j || j.error || !j.result){
+          /* the primary RPC refuses getProgramAccounts — use the fallback */
+          j = await fetch(NETWORKS[state.network].rpcFallback, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getProgramAccounts", params: params }) }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+        }
+        var accounts = (j && j.result) || [];
+        var entries = [];
+        accounts.forEach(function(a){
+          var c = bcParseCurve(b64ToBytes(a.account.data[0]));
+          if(!c || !c.mint) return;
+          c.curveStr = a.pubkey;
+          entries.push(c);
+        });
+        if(entries.length){
+          var conn = getConnection();
+          var w3 = stack().web3;
+          var pdas = entries.map(function(c){ return bcMetadataPda(w3, new w3.PublicKey(c.mint)); });
+          var infos = await conn.getMultipleAccountsInfo(pdas, "confirmed").catch(function(){ return null; });
+          entries.forEach(function(c, i){
+            var meta = infos && infos[i] ? bcParseMetadata(infos[i].data) : null;
+            c.name = (meta && meta.name) || "Unknown token";
+            c.sym = (meta && meta.sym) || truncAddr(c.mint);
+            c.uri = meta ? meta.uri : "";
+          });
+        }
+        exploreCurves = entries.map(function(c){
+          return {
+            mint: c.mint, curve: c.curveStr, creator: c.creator,
+            name: c.name, sym: c.sym, uri: c.uri,
+            priceSol: Number(bcSpotLamports(c.vsol, c.vtok)) / 1e9,
+            mcapSol: Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9,
+            solIn: Number(c.realSol) / 1e9,
+            progress: Math.min(100, Number(c.realSol) * 100 / Number(BC_GRAD_SOL)),
+            complete: c.complete, migrated: c.migrated
+          };
+        });
+        exploreCurvesNet = state.network;
+        renderCurveRows();
+        exploreCurves.forEach(function(t){
+          var img = bcMetaImage(t.uri);
+          if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
+          else if(img) setCurveImg(t.mint, img);
+        });
+      } catch(e){ /* the $VECTOR row stays; the scan retries on the next visit */ }
+      exploreCurvesBusy = false;
+    }
+    function curveStatusBadge(t){
+      if(t.migrated) return '<span class="badge live">Graduated</span>';
+      if(t.complete) return '<span class="badge live">Curve complete</span>';
+      return '<span class="badge">Bonding curve</span>';
+    }
+    function openCurveToken(mint){
+      $("bcMintInput").value = mint;
+      showView("token");
+      loadBcCurve(mint);
+    }
+    function renderCurveRows(){
+      document.querySelectorAll(".curve-row,.curve-card").forEach(function(n){ n.remove(); });
+      var list = exploreCurves.slice();
+      if($("sortSel").value !== "age") list.sort(function(a, b){ return b.mcapSol - a.mcapSol; });
+      var tbody = $("tokenRows"), grid = $("tokenGrid");
+      list.forEach(function(t, i){
+        var row = document.createElement("tr");
+        row.className = "curve-row";
+        row.setAttribute("tabindex", "0");
+        row.setAttribute("data-mint", t.mint);
+        row.setAttribute("aria-label", "View " + t.name + " token page");
+        row.innerHTML =
+          '<td class="num">' + (i + 2) + '</td>' +
+          '<td><div class="tok-cell"><img class="tok-img" data-curve-img="' + t.mint + '" src="assets/logo-sky.png" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
+            '<div><div class="tok-name">' + esc(t.name) + ' ' + curveStatusBadge(t) + '</div>' +
+            '<div class="tok-sym">$' + esc(t.sym) + ' · ' + truncAddr(t.mint) + '</div></div></div></td>' +
+          '<td class="dash">—</td>' +
+          '<td class="num">' + fmtTokens(t.mcapSol, 2) + ' SOL</td>' +
+          '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>' +
+          '<td class="num">1%</td>' +
+          '<td>Creator</td>' +
+          '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>' +
+          '<td><span class="num">' + t.progress.toFixed(1) + '%</span> <span class="dash">to graduation</span></td>' +
+          '<td><button type="button" class="watch-btn" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></td>';
+        row.addEventListener("click", function(e){ if(e.target.closest(".watch-btn")) return; openCurveToken(t.mint); });
+        row.addEventListener("keydown", function(e){ if(e.key === "Enter") openCurveToken(t.mint); });
+        var wb = row.querySelector(".watch-btn");
+        wb.addEventListener("click", function(){
+          wb.classList.toggle("on");
+          wb.querySelector("svg").setAttribute("fill", wb.classList.contains("on") ? "currentColor" : "none");
+        });
+        tbody.appendChild(row);
+
+        var card = el(
+          '<div class="coin-card curve-card" data-mint="' + t.mint + '" tabindex="0" role="button" aria-label="View ' + esc(t.name) + ' token page">' +
+            '<div class="cc-head"><img data-curve-img="' + t.mint + '" src="assets/logo-sky.png" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
+              '<div style="flex:1;min-width:0"><div class="cc-name">' + esc(t.name) + '</div>' +
+              '<div class="cc-meta">$' + esc(t.sym) + ' · ' + (t.migrated ? "Graduated · Raydium" : "Bonding curve") + '</div>' +
+              '<div style="margin-top:5px">' + curveStatusBadge(t) + '</div></div>' +
+              '<button type="button" class="watch-btn" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></div>' +
+            '<div class="cc-nums">' +
+              '<div><div class="lbl">Price</div><div class="v num">' + fmtTokens(t.priceSol, 8) + ' SOL</div></div>' +
+              '<div><div class="lbl">Market cap</div><div class="v num">' + fmtTokens(t.mcapSol, 2) + ' SOL</div></div>' +
+              '<div><div class="lbl">SOL in curve</div><div class="v small num">' + fmtTokens(t.solIn, 3) + ' SOL</div></div>' +
+              '<div><div class="lbl">To graduation</div><div class="v small num">' + t.progress.toFixed(1) + '%</div></div>' +
+            '</div></div>');
+        card.addEventListener("click", function(e){ if(e.target.closest(".watch-btn")) return; openCurveToken(t.mint); });
+        card.addEventListener("keydown", function(e){ if(e.key === "Enter") openCurveToken(t.mint); });
+        var cwb = card.querySelector(".watch-btn");
+        cwb.addEventListener("click", function(){
+          cwb.classList.toggle("on");
+          cwb.querySelector("svg").setAttribute("fill", cwb.classList.contains("on") ? "currentColor" : "none");
+        });
+        grid.appendChild(card);
+      });
+      var lv = $("statListedVal"), ls = $("statListedSub");
+      if(lv) lv.textContent = String(1 + exploreCurves.length);
+      if(ls) ls.textContent = exploreCurves.length ? "$VECTOR · soon · " + exploreCurves.length + " on curve" : "$VECTOR · soon";
+      applyFilters();
+    }
+
     /* ================= Explore controls ================= */
     $("filterTabs").querySelectorAll(".tab").forEach(function(t){
       t.addEventListener("click", function(){
@@ -2722,25 +2947,46 @@
         t.classList.add("active"); state.tab = t.getAttribute("data-tab"); applyFilters();
       });
     });
+    function curveMatches(t, tabOk, q){
+      if(!tabOk || !t) return false;
+      if(!q) return true;
+      return (t.name + " $" + t.sym + " " + t.mint).toLowerCase().indexOf(q) > -1;
+    }
     function applyFilters(){
-      var showToken = (state.tab==="all" || state.tab==="new");
       var q = ($("searchInput").value||"").trim().toLowerCase();
-      if(q && !("vector pad vector".indexOf(q)>-1)) showToken = false;
-      $("tableWrap").style.display = (showToken && state.viewMode==="table") ? "" : "none";
-      $("gridWrap").style.display = (showToken && state.viewMode==="grid") ? "block" : "none";
+      var tabOk = (state.tab==="all" || state.tab==="new");
+      var vectorMatch = tabOk && (!q || "vector pad vector".indexOf(q) > -1);
+      if(boardRowEl) boardRowEl.style.display = vectorMatch ? "" : "none";
+      if(boardCardEl) boardCardEl.style.display = vectorMatch ? "" : "none";
+      var curveVisible = 0;
+      document.querySelectorAll(".curve-row").forEach(function(r){
+        var t = exploreCurves.filter(function(x){ return x.mint === r.getAttribute("data-mint"); })[0];
+        var m = curveMatches(t, tabOk, q);
+        r.style.display = m ? "" : "none";
+        if(m) curveVisible++;
+      });
+      document.querySelectorAll(".curve-card").forEach(function(cd){
+        var t = exploreCurves.filter(function(x){ return x.mint === cd.getAttribute("data-mint"); })[0];
+        cd.style.display = curveMatches(t, tabOk, q) ? "" : "none";
+      });
+      var any = vectorMatch || curveVisible > 0;
+      $("tableWrap").style.display = (any && state.viewMode==="table") ? "" : "none";
+      $("gridWrap").style.display = (any && state.viewMode==="grid") ? "block" : "none";
       var emp = $("exploreEmpty");
-      if(!showToken){
+      if(!any){
         emp.style.display="block";
-        if(q){ $("emptyTitle").textContent = "No tokens match “"+$("searchInput").value.trim()+"”"; }
-        else if(state.tab!=="all" && state.tab!=="new"){ $("emptyTitle").textContent = "Nothing here yet"; $("emptyText").textContent = "No listed token carries this badge yet. Launch a coin with these features and it will show up under this tab."; }
-      } else {
+        if(q){ $("emptyTitle").textContent = "No tokens match “"+$("searchInput").value.trim()+"”"; $("emptyText").textContent = "Try another name, ticker or mint address."; }
+        else { $("emptyTitle").textContent = "Nothing here yet"; $("emptyText").textContent = "No listed token carries this badge yet. Launch a coin with these features and it will show up under this tab."; }
+      } else if(curveVisible === 0){
         emp.style.display="block";
         $("emptyTitle").textContent = "No other tokens yet — be the first to launch";
         $("emptyText").textContent = "Vector Pad just opened its doors on Solana. Launch the next coin, pair it with SOL, USDC, or a tokenized stock like NVDAx or TSLAx, and it will trade here.";
+      } else {
+        emp.style.display="none";
       }
     }
     $("searchInput").addEventListener("input", applyFilters);
-    $("sortSel").addEventListener("change", function(){ /* single listed token — order is already correct */ });
+    $("sortSel").addEventListener("change", function(){ renderCurveRows(); });
     $("viewTableBtn").addEventListener("click", function(){ setViewMode("table"); });
     $("viewGridBtn").addEventListener("click", function(){ setViewMode("grid"); });
     function setViewMode(m){
@@ -2776,6 +3022,7 @@
       buildValidatorOptions();
       syncNetworkUI();
       state.bondingLive = null; state.bondingLiveNet = null; state.bc = null;
+      exploreCurves = []; exploreCurvesNet = null; renderCurveRows(); loadExploreCurves();
       refreshBondingProgramState();
       if(state.wallet) loadBalances();
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
@@ -3753,8 +4000,8 @@
     }
     function bcProgramStateText(live){
       return live
-        ? "It IS deployed and executable on " + state.network + " — bonding launches, buys and sells below are live."
-        : "It is NOT deployed on " + state.network + " yet — bonding curve launches when the program is deployed. Nothing below will send a transaction until then.";
+        ? "Live on " + state.network + "."
+        : "Not deployed on " + state.network + " yet.";
     }
     async function refreshBondingProgramState(){
       var el1 = $("bondingProgramState"), el2 = $("bcNotLiveTxt");
@@ -3762,7 +4009,7 @@
       var conn = getConnection();
       var live = await bcProgramLive(conn);
       if(el1) el1.textContent = bcProgramStateText(live);
-      if(el2) el2.textContent = bcProgramStateText(live) + " Program: " + BONDING_CURVE_PROGRAM_ID;
+      if(el2) el2.textContent = bcProgramStateText(live);
       var bb = $("bondingProgramBanner"); if(bb) bb.style.borderColor = live ? "var(--green)" : "";
       updateDeployBtn();
       updateBcTradeBtn();
@@ -3786,8 +4033,11 @@
       var sp = $("sumPool"); if(sp) sp.textContent = bonding ? "At graduation · Raydium CPMM" : "Raydium CPMM";
       var sf = $("sumFee"); if(sf) sf.textContent = bonding ? "1% curve fee" : fmtFeePct(state.feePct);
       var si = $("sumInit");
-      if(si) si.textContent = bonding ? "None — supply sits in the curve" : si.textContent;
-      if(bonding){ var si2 = $("sumInit"); if(si2) si2.textContent = "None — supply sits in the curve"; }
+      if(si && si.parentElement){
+        var siK = si.parentElement.querySelector(".k");
+        if(siK) siK.textContent = bonding ? "Initial buy" : "Seed liquidity";
+      }
+      if(bonding) updateInitBuyUI();
       else updateSeedSummary();
       /* Steps 3–5 (fee slider / coin type / payouts) only describe the direct
          mode's display metadata; in bonding mode the fee is fixed at 1% by
@@ -3833,8 +4083,8 @@
       $("sumMint").title = p.mint;
       var spu = $("seedPairUnit"); if(spu) spu.textContent = p.sym;
       $("pairNote").innerHTML = p.stock
-        ? "Pairing dengan xStock tersedia — mint ini sudah terdaftar di Raydium (transfer hook sudah diizinkan). <b>" + p.sym + "</b> is a tokenized stock issued by Backed (xStocks), Token-2022 with 8 decimals, trading 24/7 on Solana DEXs — your pool stays open around the clock, even when US markets are closed. Note: xStocks are not available to US persons."
-        : "Your pool will be priced in " + p.name + " (" + p.sym + ").";
+        ? "xStock by Backed · Token-2022 · 24/7. Not for US persons."
+        : "";
       updateSeedSummary();
       updateDeployBtn();
     }
@@ -3855,11 +4105,11 @@
       }
       if(state.pairSel && !isNaN(st) && st > 0 && !isNaN(sp) && sp > 0){
         $("sumInit").textContent = fmtTokens(st, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(sp, 4) + " " + state.pairSel.sym;
-        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~" + fmtTokens(poolCostSol(), 2) + " SOL in Raydium fees + rent on " + state.network + ", plus ~0.0035 SOL for the mint and network fees (≈" + fmtTokens(creationCostSol(), 2) + " SOL total, fixed — it does not scale with your seed).";
+        $("seedHint").textContent = "Open ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + "/token · costs ≈" + fmtTokens(creationCostSol(), 2) + " SOL";
         if(state.pairSel.sym === "SOL"){
-          $("seedTotalHint").textContent = "Total needed in your wallet ≈ " + fmtTokens(sp + creationCostSol(), 3) + " SOL — that's your " + fmtTokens(sp, 4) + " SOL seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL creation costs. Lower the seed above if your balance is short.";
+          $("seedTotalHint").textContent = "Need ≈ " + fmtTokens(sp + creationCostSol(), 3) + " SOL total.";
         } else {
-          $("seedTotalHint").textContent = "Total needed: " + fmtTokens(sp, 4) + " " + state.pairSel.sym + " for the seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL in your wallet for creation costs.";
+          $("seedTotalHint").textContent = "Need " + fmtTokens(sp, 4) + " " + state.pairSel.sym + " + ≈" + fmtTokens(creationCostSol(), 2) + " SOL.";
         }
       } else {
         $("sumInit").textContent = "Not set";
@@ -3878,6 +4128,55 @@
       });
     });
 
+    /* ---- Step 2 (bonding): initial buy — creator buys in the launch tx ---- */
+    function getInitBuySol(){
+      var inp = $("initBuyAmt"); if(!inp) return 0;
+      var v = parseAmtStr(inp.value);
+      return isNaN(v) ? 0 : v;
+    }
+    function getInitBuyQuote(){
+      var sol = getInitBuySol();
+      if(!(sol > 0)) return null;
+      try {
+        var lamports = BigInt(Math.round(sol * 1e9));
+        var q = bcQuoteBuy(lamports, BC_INIT_VSOL, BC_INIT_VTOK, BC_CURVE_TOKENS);
+        q.lamports = lamports;
+        q.minOut = q.tokensOut * BigInt(10000 - state.bcSlippage) / 10000n;
+        return q;
+      } catch(e){ return { error: e.message }; }
+    }
+    function updateInitBuyUI(){
+      var inp = $("initBuyAmt"); if(!inp) return;
+      var sol = getInitBuySol(), q = getInitBuyQuote();
+      var tick = $("inTicker").value.trim() || "tokens";
+      var row = $("initBuyPresets");
+      if(row){
+        row.querySelectorAll(".chip").forEach(function(c){
+          c.classList.toggle("active", parseFloat(c.getAttribute("data-ibuy")) === sol);
+        });
+      }
+      var line = $("initBuyQuote");
+      if(line){
+        if(!(sol > 0)) line.textContent = "Same transaction as create. 0 = skip.";
+        else if(q && q.error) line.textContent = q.error;
+        else if(q) line.textContent = "≈ " + fmtTokens(Number(q.tokensOut) / 1e6, 2) + " " + tick + " · total ≈ " + fmtTokens(0.01 + sol, 4) + " SOL";
+      }
+      if(state.launchMode === "bonding"){
+        var si = $("sumInit");
+        if(si) si.textContent = (sol > 0 && q && !q.error) ? fmtTokens(sol, 4) + " SOL buy" : "None";
+      }
+      updateDeployBtn();
+    }
+    $("initBuyAmt").addEventListener("input", function(){ $("fInitBuy").classList.remove("invalid"); updateInitBuyUI(); });
+    $("initBuyPresets").querySelectorAll(".chip").forEach(function(c){
+      c.addEventListener("click", function(){
+        var v = c.getAttribute("data-ibuy");
+        $("initBuyAmt").value = v === "0" ? "" : v;
+        $("fInitBuy").classList.remove("invalid");
+        updateInitBuyUI();
+      });
+    });
+
     /* ---- Step 3: trading fee (1%–10%) ---- */
     function fmtFeePct(v){ return (v % 1 ? v.toFixed(1) : String(v)) + "%"; }
     function setFee(v){
@@ -3886,7 +4185,7 @@
       $("feeVal").textContent = v % 1 ? v.toFixed(1) : String(v);
       $("feeRange").value = v;
       $("sumFee").textContent = fmtFeePct(v);
-      $("feeExample").textContent = "On a $1,000 trade, traders pay $" + (v*10).toLocaleString("en-US") + " in fees — split by your coin type.";
+      $("feeExample").textContent = "$1,000 trade → $" + (v*10).toLocaleString("en-US") + " fee.";
       $("feeRow").querySelectorAll(".chip").forEach(function(x){
         x.classList.toggle("active", parseFloat(x.getAttribute("data-fee")) === v);
       });
@@ -3995,8 +4294,8 @@
     function renderPayoutHint(){
       var s = currentSplit();
       $("payoutHint").textContent = s.creator === 0
-        ? "Your coin type sends 0% of fees to payout wallets, so you can skip this step — or add wallets now in case you switch to a mix with a payout share later."
-        : "The creator-payout share (" + s.creator + "% of all trading fees) is split between these Solana wallets by share. Add up to 10; shares must total 100%.";
+        ? "0% to payouts — skip."
+        : "Split by share. Max 10 · must total 100%.";
     }
     $("inName").addEventListener("input", function(){
       $("sumName").textContent = this.value.trim() || "—";
@@ -4007,6 +4306,7 @@
       $("sumTicker").textContent = this.value ? "$"+this.value : "—";
       $("fTicker").classList.remove("invalid");
       updateSeedSummary();
+      updateInitBuyUI();
     });
     $("inDesc").addEventListener("input", function(){ $("descCount").textContent = this.value.length; });
     $("inImage").addEventListener("change", function(){
@@ -4035,7 +4335,9 @@
       });
       $("wizBack").style.visibility = n === 1 ? "hidden" : "visible";
       $("wizNext").style.display = n === 6 ? "none" : "";
-      $("wizCount").textContent = "Step " + n + " of 6 · " + STEP_NAMES[n];
+      var stepName = STEP_NAMES[n];
+      if(state.launchMode === "bonding"){ if(n === 2) stepName = "Curve"; if(n === 3) stepName = "Curve fee"; }
+      $("wizCount").textContent = "Step " + n + " of 6 · " + stepName;
       if(n === 5){ renderPayoutHint(); syncPayouts(); }
       if(n === 6) renderReview();
     }
@@ -4049,7 +4351,13 @@
         return ok;
       }
       if(n === 2){
-        if(state.launchMode === "bonding") return true; /* pair is always SOL; no seed */
+        if(state.launchMode === "bonding"){
+          var rawIb = $("initBuyAmt").value.trim();
+          var ibQ = getInitBuyQuote();
+          var okIb = rawIb === "" || (!isNaN(parseAmtStr(rawIb)) && (!(getInitBuySol() > 0) || (ibQ && !ibQ.error)));
+          $("fInitBuy").classList.toggle("invalid", !okIb);
+          return okIb;
+        }
         if(!state.pairSel){ $("fPair").classList.add("invalid"); return false; }
         var st = parseAmtStr($("seedTokenAmt").value), sp = parseAmtStr($("seedPairAmt").value);
         var okSeed = !isNaN(st) && st > 0 && st <= 1000000000 && !isNaN(sp) && sp >= 0.01;
@@ -4086,7 +4394,7 @@
       return true;
     }
     $("wizNext").addEventListener("click", function(){
-      if(!validateStep(state.step)){ toast("A couple of fields on this step need fixing."); return; }
+      if(!validateStep(state.step)){ toast("Check this step."); return; }
       gotoStep(Math.min(6, state.step + 1));
       $("createForm").scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -4127,17 +4435,26 @@
       h += reviewRow("Network", "Solana " + state.network);
       h += reviewRow("Total supply", "1,000,000,000 · 6 decimals");
       if(state.launchMode === "bonding"){
-        h += reviewRow("Launch mode", "Bonding curve · pump.fun-style");
+        h += reviewRow("Launch mode", "Bonding curve");
         h += reviewRow("Program", BONDING_CURVE_PROGRAM_ID, true);
-        h += reviewRow("Program status", state.bondingLive ? "Deployed on " + state.network : "Not deployed yet — bonding curve launches when the program is deployed");
-        h += reviewRow("Supply split", "793,100,000 on the curve · 206,900,000 reserved for the Raydium pool");
-        h += reviewRow("Held by your wallet at create", "0 — buy on the curve to hold your coin");
-        h += reviewRow("Virtual reserves", "30 SOL / 1,073,000,000 tokens");
-        h += reviewRow("Graduation", "~85 SOL net buys → Raydium CPMM pool (LP burned)");
-        h += reviewRow("Curve fee", "1% per trade · 0.70% protocol / 0.30% creator");
+        h += reviewRow("Program status", state.bondingLive ? "Live · " + state.network : "Not deployed");
+        h += reviewRow("Supply split", "793.1M curve · 206.9M pool");
+        h += reviewRow("Virtual reserves", "30 SOL / 1.073B");
+        h += reviewRow("Graduation", "~85 SOL → Raydium");
+        h += reviewRow("Curve fee", "1%");
         h += reviewRow("Protocol wallet", BONDING_PROTOCOL_WALLET, true);
-        h += reviewRow("Your create cost", "~0.01 SOL rent only");
-        h += reviewRow("Mint authority", "Revoked at create (by the program)");
+        var ibS = getInitBuySol(), ibQ = getInitBuyQuote();
+        if(ibS > 0 && ibQ && !ibQ.error){
+          h += reviewRow("Initial buy", fmtTokens(ibS, 4) + " SOL · same tx as create");
+          h += reviewRow("You receive", "≈ " + fmtTokens(Number(ibQ.tokensOut) / 1e6, 2) + " " + (tick || "tokens") + " · min " + fmtTokens(Number(ibQ.minOut) / 1e6, 2));
+          h += reviewRow("Total due", "≈ " + fmtTokens(0.01 + ibS, 4) + " SOL (rent + buy)");
+        } else if(ibS > 0){
+          h += reviewRow("Initial buy", "Fix the amount in Step 2 — " + (ibQ ? ibQ.error : "invalid"));
+        } else {
+          h += reviewRow("Initial buy", "None — 0 tokens at create");
+          h += reviewRow("Create cost", "~0.01 SOL");
+        }
+        h += reviewRow("Mint authority", "Revoked");
         $("reviewBox").innerHTML = h;
         return;
       }
@@ -4159,12 +4476,12 @@
       if(tg) h += reviewRow("Telegram", esc(tg));
       var stR = parseAmtStr($("seedTokenAmt").value), spR = parseAmtStr($("seedPairAmt").value);
       h += reviewRow("Seed liquidity", fmtTokens(stR, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(spR, 4) + " " + (p ? p.sym : ""));
-      h += reviewRow("Pool fee config", "Raydium CPMM · 0.25% trade fee (config #0)");
+      h += reviewRow("Pool fee", "0.25%");
       if(p && p.sym === "SOL" && !isNaN(spR) && spR > 0){
-        h += reviewRow("Creation costs", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL (mint ~0.0035 + pool ~" + fmtTokens(poolCostSol(), 2) + " + network fees)");
-        h += reviewRow("Total needed in wallet", "≈ " + fmtTokens(spR + creationCostSol(), 3) + " SOL (" + fmtTokens(spR, 4) + " SOL seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL costs)");
+        h += reviewRow("Costs", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL");
+        h += reviewRow("Total needed", "≈ " + fmtTokens(spR + creationCostSol(), 3) + " SOL");
       } else {
-        h += reviewRow("Est. total cost", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL creation costs (mint ~0.0035 + pool ~" + fmtTokens(poolCostSol(), 2) + " + network fees), plus your " + (p ? p.sym : "pair-asset") + " seed above");
+        h += reviewRow("Costs", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL + seed");
       }
       h += reviewRow("Mint authority", "Revoked at launch");
       $("reviewBox").innerHTML = h;
@@ -4176,7 +4493,9 @@
       if(state.deploying){ btn.textContent = "Deploying…"; return; }
       if(state.launchMode === "bonding"){
         if(!state.wallet){ btn.textContent = "Connect wallet to launch"; return; }
-        btn.textContent = state.bondingLive ? "Launch on the bonding curve (~0.01 SOL)" : "Bonding program not deployed yet";
+        if(!state.bondingLive){ btn.textContent = "Program not deployed"; return; }
+        var ib = getInitBuySol(), ibQ = getInitBuyQuote();
+        btn.textContent = (ib > 0 && ibQ && !ibQ.error) ? "Launch + buy " + fmtTokens(ib, 4) + " SOL" : "Launch (~0.01 SOL)";
         return;
       }
       btn.textContent = state.wallet ? "Deploy token & open pool" : "Connect wallet to deploy";
@@ -4185,7 +4504,7 @@
       for(var s = 1; s <= 5; s++){
         if(!validateStep(s)){
           gotoStep(s);
-          toast("A couple of fields need fixing before you can deploy.");
+          toast("Check the highlighted fields.");
           return;
         }
       }
@@ -4384,7 +4703,7 @@
         renderReview();
         var fn2 = $("devnetFeeNote");
         if(fn2 && state.network === "devnet" && state.poolCfg){
-          fn2.textContent = " Heads-up: Raydium's devnet CPMM config charges a " + fmtTokens(state.poolCfg.feeLamports / 1e9, 4) + " SOL pool-creation fee (test SOL), so a launch here needs ≈ " + (state.poolCfg.fixedLamports / 1e9).toFixed(2) + " SOL of devnet SOL on top of your seed — grab extra from the faucet first if your balance is short.";
+          fn2.textContent = " Devnet pool fee " + fmtTokens(state.poolCfg.feeLamports / 1e9, 4) + " SOL — total costs ≈ " + (state.poolCfg.fixedLamports / 1e9).toFixed(2) + " SOL on top of your seed.";
         }
       }).catch(function(){ poolFeeFetching = false; });
     }
@@ -4608,7 +4927,7 @@
       var conn = getConnection();
       var owner = new w3.PublicKey(state.wallet.pubkey);
       var tx = new w3.Transaction();
-      tx.add(ix);
+      (Array.isArray(ix) ? ix : [ix]).forEach(function(oneIx){ tx.add(oneIx); });
       var bh = await conn.getLatestBlockhash("confirmed");
       tx.recentBlockhash = bh.blockhash;
       tx.feePayer = owner;
@@ -4642,12 +4961,15 @@
       try {
         var live = await bcProgramLive(conn);
         if(!live){
-          statusLine(box, '<span class="st-err">Bonding curve launches when the program is deployed.</span> Program ' + BONDING_CURVE_PROGRAM_ID + ' is not deployed on ' + state.network + ' yet, so nothing was built or sent. The program is compiled and tested (8/8) — once it is deployed (same program ID), this exact button goes live with no app change. Direct Raydium mode still works today.');
-          toast("Bonding program not deployed yet — nothing was sent.");
+          statusLine(box, '<span class="st-err">Program not deployed on ' + state.network + ' yet.</span> Nothing was sent.');
+          toast("Program not deployed — nothing sent.");
           return;
         }
+        var ibSol = getInitBuySol(), ibQuote = getInitBuyQuote();
+        if(ibSol > 0 && (!ibQuote || ibQuote.error)) throw new Error("Initial buy needs fixing (Step 2): " + (ibQuote ? ibQuote.error : "invalid amount"));
+        var needLamports = 20000000 + (ibQuote ? Number(ibQuote.lamports) : 0);
         var bal = await conn.getBalance(owner);
-        if(bal < 20000000) throw new Error("Not enough SOL for the create rent (~0.01 SOL) plus network fees: your wallet holds " + (bal / 1e9).toFixed(4) + " SOL on " + state.network + ".");
+        if(bal < needLamports) throw new Error("Not enough SOL: need ≈ " + (needLamports / 1e9).toFixed(4) + " SOL (rent + buy), you hold " + (bal / 1e9).toFixed(4) + " SOL.");
         /* Fresh mint keypair in the browser; the program creates the mint. */
         var pend = state.pendingDeploy;
         var mintKp = (pend && pend.bonding && pend.network === state.network && pend.owner === state.wallet.pubkey && pend.tick === tick) ? pend.kp : w3.Keypair.generate();
@@ -4676,13 +4998,38 @@
           ],
           data: Buffer.from(data)
         });
-        var sig = await bcSendIx(box, ix, [mintKp], net.label + " · From " + truncAddr(state.wallet.pubkey) + " · create_curve $" + tick + " · Supply 1,000,000,000 held by the curve (793.1M for sale) · Protocol wallet " + truncAddr(BONDING_PROTOCOL_WALLET) + " · Est. cost ~0.01 SOL rent");
+        /* Optional initial buy rides in the SAME transaction, right after
+           create_curve — the curve exists by the time the buy runs, so the
+           launch is atomic: if the buy fails, the create fails too. */
+        var ixs = [ix], buySummary = "";
+        if(ibQuote){
+          var tokenProgPk = new w3.PublicKey(TOKEN_PROG);
+          var buyerAta = spl.getAssociatedTokenAddressSync(mintPk, owner, false, tokenProgPk);
+          var buyIx = new w3.TransactionInstruction({
+            programId: programId,
+            keys: [
+              bcKey(w3, owner, true, true),
+              bcKey(w3, curvePda, false, true),
+              bcKey(w3, mintPk, false, false),
+              bcKey(w3, vaultAta, false, true),
+              bcKey(w3, buyerAta, false, true),
+              bcKey(w3, tokenProgPk, false, false),
+              bcKey(w3, new w3.PublicKey(ATA_PROGRAM_ID), false, false),
+              bcKey(w3, w3.SystemProgram.programId, false, false)
+            ],
+            data: Buffer.from(bcConcat([ bcHexBytes(BC_DISC.buy), bcU64(ibQuote.lamports), bcU64(ibQuote.minOut) ]))
+          });
+          ixs.push(buyIx);
+          buySummary = " + buy " + fmtTokens(ibSol, 4) + " SOL → min " + fmtTokens(Number(ibQuote.minOut) / 1e6, 2) + " $" + tick;
+        }
+        var sig = await bcSendIx(box, ixs, [mintKp], net.label + " · create_curve $" + tick + buySummary + " · Total ≈ " + fmtTokens(0.01 + ibSol, 4) + " SOL");
         state.pendingDeploy = null;
         state.bondingTokens.push({ mint: mintPk.toBase58(), sym: tick, name: name, curve: curvePda.toBase58(), creator: state.wallet.pubkey, network: state.network });
         var already = state.createdTokens.some(function(t){ return t.mint === mintPk.toBase58(); });
         if(!already){ state.createdTokens.push({ sym: tick, name: name, mint: mintPk.toBase58(), decimals: 6, programId: TOKEN_PROG, created: true, bonding: true }); renderSwapTokens(); renderLaunched(); }
         statusLine(box, '<span class="st-ok">Curve live:</span> mint ' + mintPk.toBase58() + ' · <a href="' + explorerAddr(mintPk.toBase58()) + '" target="_blank" rel="noopener">Solscan</a> · <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">tx</a>');
-        statusLine(box, "Your wallet holds 0 " + esc(tick) + " — as designed. Buy on the curve from the token page; at ~85 SOL of net buys the curve completes and can be graduated to Raydium.");
+        if(ibQuote) statusLine(box, '<span class="st-ok">Initial buy filled:</span> ≈ ' + fmtTokens(Number(ibQuote.tokensOut) / 1e6, 2) + " " + esc(tick) + " for " + fmtTokens(ibSol, 4) + " SOL — in your wallet now.");
+        else statusLine(box, "You hold 0 " + esc(tick) + ". Buy from the panel above.");
         toast("Launched $" + tick + " on the bonding curve.");
         $("bcMintInput").value = mintPk.toBase58();
         loadBalances();
@@ -4706,20 +5053,20 @@
       var conn = getConnection();
       var curvePda = bcCurvePda(w3, mintPk);
       $("bcBody").style.display = "none";
-      $("bcLoadHint").textContent = "Reading the Curve account " + truncAddr(curvePda.toBase58()) + " on " + state.network + "…";
+      $("bcLoadHint").textContent = "Reading curve…";
       var info = await conn.getAccountInfo(curvePda, "confirmed").catch(function(){ return null; });
       if(!info){
         state.bc = null;
-        $("bcLoadHint").textContent = "No Curve account for this mint on " + state.network + " — either the mint was not launched in bonding mode, or the bonding program is not deployed on this network yet (bonding curve launches when the program is deployed).";
+        $("bcLoadHint").textContent = "No curve for this mint on " + state.network + ".";
         refreshBondingProgramState();
         return;
       }
       var c = bcParseCurve(info.data);
-      if(!c){ $("bcLoadHint").textContent = "That account exists but is not a readable Curve account."; return; }
+      if(!c){ $("bcLoadHint").textContent = "Not a readable Curve account."; return; }
       c.mintStr = mintPk.toBase58(); c.curveStr = curvePda.toBase58();
       state.bc = c;
       $("bcBody").style.display = "";
-      $("bcLoadHint").textContent = "Curve loaded from chain — virtual reserves are read live on every refresh.";
+      $("bcLoadHint").textContent = "Live from chain.";
       renderBcPanel();
       refreshBondingProgramState();
     }
@@ -4787,12 +5134,12 @@
       var line = $("bcQuoteLine"); if(!line || !state.bc) return;
       $("bcAmtUnit").textContent = state.bcSide === "buy" ? "SOL" : (state.bc ? (state.createdTokens.filter(function(t){ return t.mint === state.bc.mintStr; })[0] || {}).sym || "tokens" : "tokens");
       var q = bcCurrentQuote();
-      if(!q){ line.textContent = "Enter an amount — the quote uses the live virtual reserves (fee 1%: 0.70% protocol / 0.30% creator)."; return; }
+      if(!q){ line.textContent = "Fee 1%."; return; }
       if(q.error){ line.textContent = q.error; return; }
       if(state.bcSide === "buy"){
-        line.textContent = "You receive ≈ " + fmtTokens(Number(q.tokensOut) / 1e6, 2) + " tokens · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL (protocol " + fmtTokens(Number(q.protocolFee) / 1e9, 6) + " / creator " + fmtTokens(Number(q.creatorFee) / 1e9, 6) + ") · min out after slippage " + fmtTokens(Number(q.minOut) / 1e6, 2);
+        line.textContent = "≈ " + fmtTokens(Number(q.tokensOut) / 1e6, 2) + " tokens · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL · min " + fmtTokens(Number(q.minOut) / 1e6, 2);
       } else {
-        line.textContent = "You receive ≈ " + fmtTokens(Number(q.solOut) / 1e9, 6) + " SOL · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL · min out after slippage " + fmtTokens(Number(q.minOut) / 1e9, 6) + " SOL";
+        line.textContent = "≈ " + fmtTokens(Number(q.solOut) / 1e9, 6) + " SOL · fee " + fmtTokens(Number(q.fee) / 1e9, 6) + " SOL · min " + fmtTokens(Number(q.minOut) / 1e9, 6) + " SOL";
       }
     }
     function bcSetSide(side){
@@ -5664,6 +6011,7 @@
     /* ================= Boot ================= */
     renderSwapTokens();
     renderBoard();
+    loadExploreCurves();
     syncNetworkUI();
     loadTicker();
     loadPopular();
