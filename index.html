@@ -1142,6 +1142,7 @@
           <h3 id="emptyTitle">Be the first to launch</h3>
           <p id="emptyText">Launch a coin — it trades here.</p>
           <button type="button" class="btn btn-grad" data-nav="create" style="height:44px;padding:0 22px">Launch a coin</button>
+          <button type="button" class="btn btn-ghost" id="exploreRetryBtn" style="height:44px;padding:0 22px;display:none;margin-left:8px">Retry scan</button>
         </div>
       </section>
 
@@ -1674,7 +1675,8 @@
               <p class="note-line">Live from RPC.</p>
 
               <div style="border-top:1px solid var(--border);margin-top:30px;padding-top:26px">
-                <h3 style="margin:0 0 8px;font-size:16px;font-weight:800">Launched in this session</h3>
+                <h3 style="margin:0 0 8px;font-size:16px;font-weight:800">Your launches</h3>
+                <p class="note-line" style="margin:0 0 6px">Every coin this wallet has launched on Vector Pad, read from the chain — not just this session.</p>
                 <div id="pfLaunched"><p class="note-line" style="margin:0">Nothing launched yet.</p></div>
               </div>
             </div>
@@ -2484,6 +2486,7 @@
       });
       window.scrollTo(0, 0);
       closeMenus();
+      if(name==="explore") loadExploreCurves();
       if(name==="swap") refreshQuote();
       if(name==="swap" || name==="stake" || name==="bridge") loadPopular();
       if(name==="portfolio") loadPortfolio();
@@ -2783,9 +2786,11 @@
        virtual reserves. Names and symbols come from each mint's Metaplex
        metadata account. Figures the curve account does not carry (24h
        volume, trades, holders) stay as honest dashes. */
-    var exploreCurves = [];        /* [{mint, curve, name, sym, uri, priceSol, mcapSol, solIn, progress, complete, migrated}] */
-    var exploreCurvesNet = null;   /* network the list belongs to */
+    var exploreCurves = [];        /* [{mint, curve, creator, poolId, name, sym, uri, priceSol, mcapSol, solIn, progress, complete, migrated}] */
+    var exploreCurvesNet = null;   /* network the list belongs to — set ONLY after a scan actually succeeded */
     var exploreCurvesBusy = false;
+    var exploreScanFailed = false; /* the last scan got no answer from any endpoint */
+    var exploreScanAttempts = 0;
 
     function bcParseMetadata(data){
       /* Metaplex metadata: key(1) updateAuthority(32) mint(32), then borsh
@@ -2816,19 +2821,129 @@
       };
       probe.src = url;
     }
+    /* getProgramAccounts is where the old scan died in real browsers: the
+       primary RPC (publicnode) refuses it without a personal token, and
+       the fallback (api.mainnet-beta) answers browser requests with a 403
+       "Access forbidden" — so both calls looked fine in server-side tests
+       yet returned nothing in the user's browser, and that empty result
+       was then cached as final (exploreCurvesNet was set either way), so
+       launched tokens never appeared. The scan now walks a chain of
+       endpoints and only accepts a real result array; anything else is a
+       FAILED scan (null), never an empty list. And because even the
+       endpoints that do answer getProgramAccounts rate-limit shared keys,
+       a second path below discovers the same Curve accounts from the
+       program's transaction history over the app's ordinary RPC, which
+       serves browsers normally. */
+    function scanRpcEndpoints(){
+      if(state.network === "devnet") return [NETWORKS.devnet.rpc, NETWORKS.devnet.rpcFallback];
+      return [
+        "https://solana-mainnet.g.alchemy.com/v2/demo",
+        NETWORKS.mainnet.rpcFallback,
+        NETWORKS.mainnet.rpc
+      ];
+    }
+    async function fetchProgramAccountsChain(){
+      var params = [BONDING_CURVE_PROGRAM_ID, { encoding: "base64", filters: [{ dataSize: 195 }] }];
+      var eps = scanRpcEndpoints();
+      for(var i = 0; i < eps.length; i++){
+        try {
+          var r = await fetch(eps[i], { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getProgramAccounts", params: params }) });
+          var j = await r.json().catch(function(){ return null; });
+          if(j && !j.error && Array.isArray(j.result)) return j.result;
+        } catch(e){ /* endpoint unreachable — try the next one */ }
+      }
+      return null;
+    }
+    var B58_ALPHA = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    function b58DecodeBytes(s){
+      if(!s) return null;
+      var bytes = [0];
+      for(var c = 0; c < s.length; c++){
+        var carry = B58_ALPHA.indexOf(s[c]);
+        if(carry < 0) return null;
+        for(var i = 0; i < bytes.length; i++){ carry += bytes[i] * 58; bytes[i] = carry & 255; carry >>= 8; }
+        while(carry){ bytes.push(carry & 255); carry >>= 8; }
+      }
+      var zeros = 0; while(zeros < s.length && s[zeros] === "1") zeros++;
+      var out = new Uint8Array(zeros + bytes.length);
+      for(var j = 0; j < bytes.length; j++) out[zeros + bytes.length - 1 - j] = bytes[j];
+      return out;
+    }
+    /* Second discovery path that avoids getProgramAccounts entirely: the
+       app's normal RPC answers getSignaturesForAddress / getTransaction /
+       getAccountInfo to browsers without complaint, so walk the program's
+       recent transactions, pick out the create_curve instructions
+       (accounts[1] is the Curve PDA), and read those Curve accounts
+       directly. Verified against mainnet: this finds the TEST launch. */
+    async function fetchCurvesViaSignatures(){
+      try {
+        var sj = await rpc("getSignaturesForAddress", [BONDING_CURVE_PROGRAM_ID, { limit: 100 }]).catch(function(){ return null; });
+        if(!sj || sj.error || !Array.isArray(sj.result)) return null;
+        var sigs = sj.result.filter(function(s){ return !s.err; }).slice(0, 60);
+        var curvePdas = {};
+        for(var i = 0; i < sigs.length; i++){
+          var tj = await rpc("getTransaction", [sigs[i].signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" }]).catch(function(){ return null; });
+          var res = tj && tj.result;
+          if(!res || !res.transaction || !res.transaction.message) continue;
+          var keys = (res.transaction.message.accountKeys || []).slice();
+          if(res.meta && res.meta.loadedAddresses) keys = keys.concat(res.meta.loadedAddresses.writable || [], res.meta.loadedAddresses.readonly || []);
+          var groups = [res.transaction.message.instructions || []];
+          ((res.meta && res.meta.innerInstructions) || []).forEach(function(g){ groups.push(g.instructions || []); });
+          groups.forEach(function(ixs){
+            ixs.forEach(function(ix){
+              var pid = ix.programId || keys[ix.programIdIndex];
+              if(pid !== BONDING_CURVE_PROGRAM_ID || !ix.accounts || ix.accounts.length < 3) return;
+              var data = b58DecodeBytes(ix.data || "");
+              if(!data || data.length < 8) return;
+              var disc = "";
+              for(var b = 0; b < 8; b++) disc += ("0" + data[b].toString(16)).slice(-2);
+              if(disc !== BC_DISC.create_curve) return;
+              var curve = keys[ix.accounts[1]];
+              if(curve) curvePdas[curve] = true;
+            });
+          });
+        }
+        var pdas = Object.keys(curvePdas);
+        var out = [];
+        for(var j = 0; j < pdas.length; j++){
+          var aj = await rpc("getAccountInfo", [pdas[j], { encoding: "base64" }]).catch(function(){ return null; });
+          var val = aj && aj.result && aj.result.value;
+          if(val && val.data && val.data[0]) out.push({ pubkey: pdas[j], account: { data: val.data } });
+        }
+        return out;
+      } catch(e){ return null; }
+    }
+    async function fetchCurveAccounts(){
+      var viaGpa = await fetchProgramAccountsChain();
+      if(viaGpa && viaGpa.length) return viaGpa;
+      /* getProgramAccounts was refused everywhere, or claimed there are no
+         curves — cross-check with the signature scan before believing it. */
+      var viaSig = await fetchCurvesViaSignatures();
+      if(viaSig) return viaSig;
+      return viaGpa; /* an empty array only if an endpoint genuinely answered with one */
+    }
     async function loadExploreCurves(){
       if(exploreCurvesBusy) return;
       if(exploreCurvesNet === state.network){ renderCurveRows(); return; }
       if(!stack()){ setTimeout(loadExploreCurves, 2500); return; }
       exploreCurvesBusy = true;
       try {
-        var params = [BONDING_CURVE_PROGRAM_ID, { encoding: "base64", filters: [{ dataSize: 195 }] }];
-        var j = await rpc("getProgramAccounts", params).catch(function(){ return null; });
-        if(!j || j.error || !j.result){
-          /* the primary RPC refuses getProgramAccounts — use the fallback */
-          j = await fetch(NETWORKS[state.network].rpcFallback, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getProgramAccounts", params: params }) }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+        var accounts = await fetchCurveAccounts();
+        if(!accounts){
+          /* No endpoint answered. Do NOT mark the network as scanned —
+             show the failure honestly and retry with backoff. */
+          exploreScanFailed = true;
+          exploreCurvesBusy = false;
+          renderCurveRows();
+          renderLaunched();
+          if(exploreScanAttempts < 4){
+            exploreScanAttempts++;
+            setTimeout(function(){ if(exploreCurvesNet !== state.network && !exploreCurvesBusy) loadExploreCurves(); }, 5000 * exploreScanAttempts);
+          }
+          return;
         }
-        var accounts = (j && j.result) || [];
+        exploreScanFailed = false;
+        exploreScanAttempts = 0;
         var entries = [];
         accounts.forEach(function(a){
           var c = bcParseCurve(b64ToBytes(a.account.data[0]));
@@ -2850,7 +2965,7 @@
         }
         exploreCurves = entries.map(function(c){
           return {
-            mint: c.mint, curve: c.curveStr, creator: c.creator,
+            mint: c.mint, curve: c.curveStr, creator: c.creator, poolId: c.poolId,
             name: c.name, sym: c.sym, uri: c.uri,
             priceSol: Number(bcSpotLamports(c.vsol, c.vtok)) / 1e9,
             mcapSol: Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9,
@@ -2861,12 +2976,17 @@
         });
         exploreCurvesNet = state.network;
         renderCurveRows();
+        renderLaunched();
         exploreCurves.forEach(function(t){
           var img = bcMetaImage(t.uri);
           if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
           else if(img) setCurveImg(t.mint, img);
         });
-      } catch(e){ /* the $VECTOR row stays; the scan retries on the next visit */ }
+      } catch(e){ /* parse/RPC failure — treat like a failed scan, never as "no curves exist" */
+        exploreScanFailed = true;
+        renderCurveRows();
+        renderLaunched();
+      }
       exploreCurvesBusy = false;
     }
     function curveStatusBadge(t){
@@ -2973,10 +3093,19 @@
       $("tableWrap").style.display = (any && state.viewMode==="table") ? "" : "none";
       $("gridWrap").style.display = (any && state.viewMode==="grid") ? "block" : "none";
       var emp = $("exploreEmpty");
+      var retryBtn = $("exploreRetryBtn");
+      if(retryBtn) retryBtn.style.display = "none";
       if(!any){
         emp.style.display="block";
         if(q){ $("emptyTitle").textContent = "No tokens match “"+$("searchInput").value.trim()+"”"; $("emptyText").textContent = "Try another name, ticker or mint address."; }
         else { $("emptyTitle").textContent = "Nothing here yet"; $("emptyText").textContent = "No listed token carries this badge yet. Launch a coin with these features and it will show up under this tab."; }
+      } else if(exploreScanFailed && !exploreCurves.length){
+        /* The scan never got an answer — say so instead of claiming the
+           launchpad is empty. */
+        emp.style.display="block";
+        $("emptyTitle").textContent = "Couldn't read launches from the chain";
+        $("emptyText").textContent = "The on-chain scan didn't answer, so coins launched on Vector Pad may be missing from this list right now. It retries on its own — or retry now.";
+        if(retryBtn) retryBtn.style.display = "";
       } else if(curveVisible === 0){
         emp.style.display="block";
         $("emptyTitle").textContent = "No other tokens yet — be the first to launch";
@@ -2987,6 +3116,7 @@
     }
     $("searchInput").addEventListener("input", applyFilters);
     $("sortSel").addEventListener("change", function(){ renderCurveRows(); });
+    $("exploreRetryBtn").addEventListener("click", function(){ exploreScanAttempts = 0; exploreScanFailed = false; loadExploreCurves(); });
     $("viewTableBtn").addEventListener("click", function(){ setViewMode("table"); });
     $("viewGridBtn").addEventListener("click", function(){ setViewMode("grid"); });
     function setViewMode(m){
@@ -3022,7 +3152,7 @@
       buildValidatorOptions();
       syncNetworkUI();
       state.bondingLive = null; state.bondingLiveNet = null; state.bc = null;
-      exploreCurves = []; exploreCurvesNet = null; renderCurveRows(); loadExploreCurves();
+      exploreCurves = []; exploreCurvesNet = null; exploreScanFailed = false; exploreScanAttempts = 0; renderCurveRows(); loadExploreCurves();
       refreshBondingProgramState();
       if(state.wallet) loadBalances();
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
@@ -3791,6 +3921,7 @@
       renderLaunched();
       loadPfStake();
       if(!has) return;
+      loadExploreCurves(); /* the Your launches list reads from the shared on-chain curve scan */
       var pk = state.wallet.pubkey;
       $("pfAddr").textContent = truncAddr(pk);
       $("pfAddr").title = pk;
@@ -3830,18 +3961,59 @@
     }
     function renderLaunched(){
       var box = $("pfLaunched"); if(!box) return;
-      var keys = Object.keys(state.tokenPools);
-      if(!keys.length){
-        box.innerHTML = '<p class="note-line" style="margin:0">Nothing launched yet in this session. Coins you deploy from the Create page will be listed here with their mint and pool.</p>';
-        return;
-      }
       box.innerHTML = "";
+      var rows = 0;
+      /* On-chain bonding-curve launches by the connected wallet — the same
+         program scan that fills Explore, filtered to creator == wallet, so
+         launches from any session or device show up, not just this one. */
+      if(state.wallet){
+        var mine = exploreCurves.filter(function(t){ return t.creator === state.wallet.pubkey; });
+        /* Session bonding launches the scan has not picked up yet */
+        (state.bondingTokens || []).forEach(function(bt){
+          if(bt.network !== state.network) return;
+          var known = mine.some(function(t){ return t.mint === bt.mint; }) || exploreCurves.some(function(t){ return t.mint === bt.mint; });
+          if(!known) mine.push({ mint: bt.mint, name: bt.name, sym: bt.sym, complete: false, migrated: false, poolId: null, progress: null });
+        });
+        mine.forEach(function(t){
+          rows++;
+          var amt;
+          if(t.migrated) amt = (t.poolId ? "Pool " + truncAddr(t.poolId) : "Graduated") + "<small>Graduated · Raydium</small>";
+          else if(t.progress != null) amt = t.progress.toFixed(1) + "%<small>to graduation</small>";
+          else if(t.complete) amt = "Curve complete<small>Ready to graduate</small>";
+          else amt = "Bonding curve<small>Trading on the curve</small>";
+          var row = el('<div class="hold-row" role="button" tabindex="0" style="cursor:pointer"><div class="h-info"><div class="h-sym">' + esc(t.name || "Unknown token") + ' <span style="color:var(--muted);font-weight:700">$' + esc(t.sym || "") + "</span>" + curveStatusBadge(t) + '</div><div class="h-mint" style="word-break:break-all">' + t.mint + "</div></div>" +
+            '<div class="h-amt" style="font-size:13px">' + amt + "</div></div>");
+          row.addEventListener("click", function(){ openCurveToken(t.mint); });
+          row.addEventListener("keydown", function(e){ if(e.key === "Enter") openCurveToken(t.mint); });
+          box.appendChild(row);
+        });
+        if(!mine.length){
+          if(exploreScanFailed){
+            var fp = el('<p class="note-line" style="margin:0">Couldn\'t read your launches from the chain — the scan didn\'t answer. <button type="button" class="btn btn-ghost" id="pfLaunchRetry" style="height:32px;font-size:13px;margin-left:8px">Retry</button></p>');
+            var rb = fp.querySelector("#pfLaunchRetry");
+            if(rb) rb.addEventListener("click", function(){ exploreScanAttempts = 0; exploreScanFailed = false; loadExploreCurves(); });
+            box.appendChild(fp);
+          } else if(exploreCurvesNet !== state.network){
+            box.innerHTML += '<p class="note-line" style="margin:0">Reading your launches from the chain…</p>';
+          }
+        }
+      }
+      /* Direct Raydium launches from this session (unchanged behaviour) */
+      var keys = Object.keys(state.tokenPools);
       keys.forEach(function(k){
+        rows++;
         var parts = k.split(":");
         var row = el('<div class="hold-row"><div><div class="h-sym">'+truncAddr(parts[0])+'</div><div class="h-mint">mint '+parts[0]+'</div></div>'+
           '<div class="h-amt" style="font-size:13px">Pool '+truncAddr(state.tokenPools[k])+'<small>'+parts[1]+'</small></div></div>');
         box.appendChild(row);
       });
+      if(!rows){
+        if(state.wallet && exploreCurvesNet === state.network){
+          box.innerHTML = '<p class="note-line" style="margin:0">No launches found for this wallet on ' + state.network + ' yet. Coins you launch from the Create page will be listed here with their mint and status.</p>';
+        } else if(!state.wallet){
+          box.innerHTML = '<p class="note-line" style="margin:0">Nothing launched yet in this session. Coins you deploy from the Create page will be listed here with their mint and pool.</p>';
+        }
+      }
     }
     $("pfConnectBtn").addEventListener("click", openWalletModal);
     $("pfRefreshBtn").addEventListener("click", function(){ loadPortfolio(); loadBalances(); });
