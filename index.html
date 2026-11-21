@@ -1771,7 +1771,7 @@
               <div class="hint" style="margin:0">Check everything below — this is exactly what gets deployed on Solana.</div>
             </div>
             <div id="reviewBox"></div>
-            <div class="devnet-banner" id="devnetBanner" style="display:none"><b>Devnet mode — practice money.</b> This launch runs on Solana devnet: the SOL is free test SOL with no real value, and the pool lives on devnet only. Get devnet SOL from the <a href="https://faucet.solana.com" target="_blank" rel="noopener">Solana faucet</a> (paste your wallet address, choose Devnet), then deploy here exactly like a real launch. Switch back to Mainnet in the header when you are ready for the real thing.</div>
+            <div class="devnet-banner" id="devnetBanner" style="display:none"><b>Devnet mode — practice money.</b> This launch runs on Solana devnet: the SOL is free test SOL with no real value, and the pool lives on devnet only. Get devnet SOL from the <a href="https://faucet.solana.com" target="_blank" rel="noopener">Solana faucet</a> (paste your wallet address, choose Devnet), then deploy here exactly like a real launch. Switch back to Mainnet in the header when you are ready for the real thing.<span id="devnetFeeNote"></span></div>
             <button type="button" class="btn btn-grad deploy-btn" id="deployBtn">Connect wallet to deploy</button>
             <div class="tx-status" id="deployStatus"></div>
             <p class="note-line" id="deployNote">Deployment runs two transactions from your wallet: (1) create the Token-2022 mint, mint the full 1B supply to you, and revoke the mint authority; (2) open the Raydium CPMM pool with your seed liquidity (pool creation costs ~0.19 SOL). Every transaction is simulated first — if simulation fails, nothing is sent. LP tokens go to your wallet and are <b>not</b> auto-locked.</p>
@@ -3597,17 +3597,18 @@
       }
       if(state.pairSel && !isNaN(st) && st > 0 && !isNaN(sp) && sp > 0){
         $("sumInit").textContent = fmtTokens(st, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(sp, 4) + " " + state.pairSel.sym;
-        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~0.19 SOL in Raydium fees + rent on " + state.network + ", plus ~0.0035 SOL for the mint and network fees (≈0.21 SOL total, fixed — it does not scale with your seed).";
+        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~" + fmtTokens(poolCostSol(), 2) + " SOL in Raydium fees + rent on " + state.network + ", plus ~0.0035 SOL for the mint and network fees (≈" + fmtTokens(creationCostSol(), 2) + " SOL total, fixed — it does not scale with your seed).";
         if(state.pairSel.sym === "SOL"){
-          $("seedTotalHint").textContent = "Total needed in your wallet ≈ " + fmtTokens(sp + CREATION_COST_SOL, 3) + " SOL — that's your " + fmtTokens(sp, 4) + " SOL seed + ≈0.21 SOL creation costs. Lower the seed above if your balance is short.";
+          $("seedTotalHint").textContent = "Total needed in your wallet ≈ " + fmtTokens(sp + creationCostSol(), 3) + " SOL — that's your " + fmtTokens(sp, 4) + " SOL seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL creation costs. Lower the seed above if your balance is short.";
         } else {
-          $("seedTotalHint").textContent = "Total needed: " + fmtTokens(sp, 4) + " " + state.pairSel.sym + " for the seed + ≈0.21 SOL in your wallet for creation costs.";
+          $("seedTotalHint").textContent = "Total needed: " + fmtTokens(sp, 4) + " " + state.pairSel.sym + " for the seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL in your wallet for creation costs.";
         }
       } else {
         $("sumInit").textContent = "Not set";
         $("seedHint").textContent = "";
         $("seedTotalHint").textContent = "";
       }
+      ensurePoolFee();
     }
     $("seedTokenAmt").addEventListener("input", function(){ $("fSeed").classList.remove("invalid"); updateSeedSummary(); });
     $("seedPairAmt").addEventListener("input", function(){ $("fSeed").classList.remove("invalid"); updateSeedSummary(); });
@@ -3885,10 +3886,10 @@
       h += reviewRow("Seed liquidity", fmtTokens(stR, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(spR, 4) + " " + (p ? p.sym : ""));
       h += reviewRow("Pool fee config", "Raydium CPMM · 0.25% trade fee (config #0)");
       if(p && p.sym === "SOL" && !isNaN(spR) && spR > 0){
-        h += reviewRow("Creation costs", "≈ 0.21 SOL (mint ~0.0035 + pool ~0.19 + network fees)");
-        h += reviewRow("Total needed in wallet", "≈ " + fmtTokens(spR + CREATION_COST_SOL, 3) + " SOL (" + fmtTokens(spR, 4) + " SOL seed + ≈0.21 SOL costs)");
+        h += reviewRow("Creation costs", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL (mint ~0.0035 + pool ~" + fmtTokens(poolCostSol(), 2) + " + network fees)");
+        h += reviewRow("Total needed in wallet", "≈ " + fmtTokens(spR + creationCostSol(), 3) + " SOL (" + fmtTokens(spR, 4) + " SOL seed + ≈" + fmtTokens(creationCostSol(), 2) + " SOL costs)");
       } else {
-        h += reviewRow("Est. total cost", "≈ 0.21 SOL creation costs (mint ~0.0035 + pool ~0.19 + network fees), plus your " + (p ? p.sym : "pair-asset") + " seed above");
+        h += reviewRow("Est. total cost", "≈ " + fmtTokens(creationCostSol(), 2) + " SOL creation costs (mint ~0.0035 + pool ~" + fmtTokens(poolCostSol(), 2) + " + network fees), plus your " + (p ? p.sym : "pair-asset") + " seed above");
       }
       h += reviewRow("Mint authority", "Revoked at launch");
       $("reviewBox").innerHTML = h;
@@ -4033,6 +4034,79 @@
         }
       }).then(function(r){ state.raydium = r; state.raydiumKey = key; return r; });
     }
+    /* Resolve the CPMM fee config a launch on the active network will use
+       (the same selection the pool step makes, including the devnet PDA
+       recompute) and read its pool-creation fee from the config account
+       itself. The CPMM program charges that fee from the creator inside
+       the pool transaction: mainnet config #0 charges 0.15 SOL, but the
+       devnet program's only config charges 1 SOL — a flat "~0.21 SOL"
+       estimate therefore left devnet pool transactions dying in simulation
+       ("Transfer: insufficient lamports …, need 1000000000") after the mint
+       had already landed. Every cost figure and balance check below derives
+       from the on-chain value, never from a constant.
+       AmmConfig layout (Raydium cp-swap): discriminator 8 bytes, bump,
+       disable flag, index u16, then u64 fields — tradeFeeRate @12,
+       protocolFeeRate @20, fundFeeRate @28, createPoolFee @36. */
+    async function resolvePoolConfig(conn, owner){
+      var key = state.network + ":" + state.wallet.pubkey;
+      if(state.poolCfg && state.poolCfgKey === key) return state.poolCfg;
+      var S = stack();
+      var raydium = await loadRaydium(conn, owner);
+      var configs = await raydium.api.getCpmmConfigs();
+      if(!configs || !configs.length) throw new Error("Raydium fee configs are unavailable right now.");
+      var feeConfig = Object.assign({}, configs[0]);
+      var programId = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_PROGRAM : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM;
+      var poolFeeAccount = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_FEE_ACC : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC;
+      if(state.network === "devnet"){
+        /* The devnet API lists configs belonging to another devnet CPMM
+           deployment — recompute the PDA under the program actually used. */
+        feeConfig.id = S.raydium.getCpmmPdaAmmConfigId(programId, feeConfig.index || 0).publicKey.toBase58();
+      }
+      var feeLamports = NaN;
+      try {
+        var cfgInfo = await conn.getAccountInfo(new S.web3.PublicKey(feeConfig.id), "confirmed");
+        if(cfgInfo && cfgInfo.data && cfgInfo.data.length >= 44){
+          var dv = new DataView(cfgInfo.data.buffer, cfgInfo.data.byteOffset, cfgInfo.data.byteLength);
+          feeLamports = Number(dv.getBigUint64(36, true));
+        }
+      } catch(e){ /* fall through to the API figure */ }
+      if(!(feeLamports >= 0)){
+        var apiFee = parseInt(feeConfig.createPoolFee, 10);
+        feeLamports = isNaN(apiFee) ? 150000000 : apiFee;
+      }
+      /* Fixed costs = the config's creation fee + ≈0.06 SOL of account rent
+         and network/priority fees across both transactions (the long-standing
+         ≈0.21 SOL mainnet total is exactly 0.15 + 0.06). */
+      var out = { feeConfig: feeConfig, programId: programId, poolFeeAccount: poolFeeAccount, feeLamports: feeLamports, fixedLamports: 60000000 + feeLamports };
+      state.poolCfg = out; state.poolCfgKey = key;
+      return out;
+    }
+    /* Display-side cost figures: live once the config fee has been read for
+       the active network, the mainnet-standard estimate until then. */
+    function creationCostSol(){
+      if(state.poolCfg && state.poolCfgKey && state.poolCfgKey.split(":")[0] === state.network) return state.poolCfg.fixedLamports / 1e9;
+      return CREATION_COST_SOL;
+    }
+    function poolCostSol(){ return Math.max(0, creationCostSol() - 0.02); }
+    var poolFeeFetching = false;
+    function ensurePoolFee(){
+      if(!state.wallet || poolFeeFetching || !stack()) return;
+      var key = state.network + ":" + state.wallet.pubkey;
+      if(state.poolCfgKey === key) return;
+      var fn = $("devnetFeeNote"); if(fn) fn.textContent = "";
+      poolFeeFetching = true;
+      var conn = getConnection();
+      var owner = new (stack().web3.PublicKey)(state.wallet.pubkey);
+      resolvePoolConfig(conn, owner).then(function(){
+        poolFeeFetching = false;
+        updateSeedSummary();
+        renderReview();
+        var fn2 = $("devnetFeeNote");
+        if(fn2 && state.network === "devnet" && state.poolCfg){
+          fn2.textContent = " Heads-up: Raydium's devnet CPMM config charges a " + fmtTokens(state.poolCfg.feeLamports / 1e9, 4) + " SOL pool-creation fee (test SOL), so a launch here needs ≈ " + (state.poolCfg.fixedLamports / 1e9).toFixed(2) + " SOL of devnet SOL on top of your seed — grab extra from the faucet first if your balance is short.";
+        }
+      }).catch(function(){ poolFeeFetching = false; });
+    }
     function statusBox(box, title){
       box.classList.add("show");
       box.innerHTML = '<div class="st-title">' + title + '</div>';
@@ -4079,16 +4153,28 @@
       btn.disabled = true; btn.textContent = "Deploying…";
       statusBox(box, "Deployment · Solana " + state.network);
       try {
+        /* ----- Resolve the pool fee config first: its on-chain creation
+           fee is part of the fixed costs and is charged inside the pool
+           transaction (1 SOL on devnet, 0.15 SOL on mainnet). ----- */
+        var pcfg = await resolvePoolConfig(conn, owner);
+        statusLine(box, "Fixed creation costs on " + state.network + ": ≈ " + (pcfg.fixedLamports / 1e9).toFixed(3) + " SOL — mint + pool rent/fees ≈0.06 SOL plus Raydium's pool-creation fee of " + fmtTokens(pcfg.feeLamports / 1e9, 4) + " SOL, read from the CPMM fee config on-chain.", "mut");
         /* ----- Pre-flight balance checks (fail before any transaction) ----- */
         var balLamports = await conn.getBalance(owner);
+        var fixedTxt = "≈ " + (pcfg.fixedLamports / 1e9).toFixed(3) + " SOL of fixed creation costs (mint + pool rent/fees, including Raydium's " + fmtTokens(pcfg.feeLamports / 1e9, 4) + " SOL pool-creation fee on " + state.network + ")";
+        var topUpTip = state.network === "devnet"
+          ? " Devnet SOL is free — top up from the Solana faucet (link in the banner above) and press Deploy again. Nothing has been sent yet."
+          : " Top up SOL and press Deploy again — nothing has been sent yet.";
         if(p.sym === "SOL"){
-          var needLamports = Number(seedPairRaw) + 210000000;
+          var needLamports = Number(seedPairRaw) + pcfg.fixedLamports;
           if(balLamports < needLamports){
-            var maxSeed = Math.max(0, (balLamports - 210000000) / 1e9);
-            throw new Error("Not enough SOL on " + state.network + ": your " + fmtTokens(parseAmtStr($("seedPairAmt").value), 4) + " SOL seed plus ~0.21 SOL of fixed creation costs needs ≈ " + (needLamports / 1e9).toFixed(3) + " SOL, but your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL. You don't need a 1 SOL seed — go Back to Step 2 (Pair) and lower it: with this balance you can seed up to ≈ " + maxSeed.toFixed(3) + " SOL (e.g. pick the 0.05 starter preset, total ≈0.26 SOL).");
+            var maxSeed = Math.max(0, (balLamports - pcfg.fixedLamports) / 1e9);
+            var seedAdvice = balLamports > pcfg.fixedLamports
+              ? " You don't need a big seed — go Back to Step 2 (Pair) and lower it: with this balance you can seed up to ≈ " + maxSeed.toFixed(3) + " SOL."
+              : " Lowering the seed won't fix this one — your balance doesn't cover the fixed costs alone yet.";
+            throw new Error("Not enough SOL on " + state.network + ": your " + fmtTokens(parseAmtStr($("seedPairAmt").value), 4) + " SOL seed plus " + fixedTxt + " needs ≈ " + (needLamports / 1e9).toFixed(3) + " SOL, but your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL." + seedAdvice + topUpTip);
           }
         } else {
-          if(balLamports < 210000000) throw new Error("Not enough SOL on " + state.network + " for the fixed creation costs (~0.21 SOL — mint + Raydium pool rent/fees, separate from your " + p.sym + " seed): your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL. Top up a little SOL or wait — this 0.21 SOL is set by Solana/Raydium rent, not by Vector Pad.");
+          if(balLamports < pcfg.fixedLamports) throw new Error("Not enough SOL on " + state.network + " for the fixed creation costs (" + fixedTxt + ", separate from your " + p.sym + " seed): your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL." + topUpTip);
           var pairAta = spl.getAssociatedTokenAddressSync(new w3.PublicKey(p.mint), owner, false, new w3.PublicKey(p.programId));
           var pairBal = await conn.getTokenAccountBalance(pairAta).catch(function(){ return null; });
           if(!pairBal || !pairBal.value || BigInt(pairBal.value.amount) < BigInt(seedPairRaw)){
@@ -4175,16 +4261,10 @@
         /* ----- Tx 2: Raydium CPMM pool vs the chosen pair asset ----- */
         statusLine(box, '<span class="spin"></span> Building transaction 2 of 2 — Raydium CPMM pool…', "mut");
         var raydium = await loadRaydium(conn, owner);
-        var configs = await raydium.api.getCpmmConfigs();
-        if(!configs || !configs.length) throw new Error("Raydium fee configs are unavailable right now.");
-        var feeConfig = Object.assign({}, configs[0]);
-        var programId = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_PROGRAM : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM;
-        var poolFeeAccount = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_FEE_ACC : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC;
-        if(state.network === "devnet"){
-          /* The devnet API can return mainnet config IDs — recompute the PDA for this index. */
-          feeConfig.id = S.raydium.getCpmmPdaAmmConfigId(programId, feeConfig.index || 0).publicKey.toBase58();
-        }
-        summaryLine(box, net.label + " · From " + truncAddr(state.wallet.pubkey) + " · Create Raydium CPMM pool " + tick + "/" + p.sym + " · Seed " + fmtTokens(parseAmtStr($("seedTokenAmt").value), 0) + " " + tick + " + " + fmtTokens(parseAmtStr($("seedPairAmt").value), 4) + " " + p.sym + " · Est. cost ~0.19 SOL");
+        var feeConfig = pcfg.feeConfig;
+        var programId = pcfg.programId;
+        var poolFeeAccount = pcfg.poolFeeAccount;
+        summaryLine(box, net.label + " · From " + truncAddr(state.wallet.pubkey) + " · Create Raydium CPMM pool " + tick + "/" + p.sym + " · Seed " + fmtTokens(parseAmtStr($("seedTokenAmt").value), 0) + " " + tick + " + " + fmtTokens(parseAmtStr($("seedPairAmt").value), 4) + " " + p.sym + " · Est. cost ~" + ((pcfg.feeLamports + 40000000) / 1e9).toFixed(2) + " SOL (incl. Raydium's " + fmtTokens(pcfg.feeLamports / 1e9, 4) + " SOL pool-creation fee)");
         statusLine(box, "The pool transaction is simulated inside the signing step — if simulation fails, your wallet is never asked to send it.", "mut");
         var created = await raydium.cpmm.createPool({
           programId: programId,
