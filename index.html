@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="icon" type="image/png" href="assets/logo-black.png" />
+    <link rel="icon" type="image/png" href="assets/logo-sky.png" />
     <title>Vector Pad — App</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -393,6 +393,18 @@
       .wallet-opt:hover{background:var(--surface-2)}
       .wallet-opt .st{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted)}
       .wallet-opt .st.ok{color:var(--green)}
+      .modal.wallet-modal{max-width:440px;display:flex;flex-direction:column;max-height:calc(100dvh - 36px)}
+      .wm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+      .wm-head h3{margin:0}
+      .wm-x{border:0;background:var(--surface-2);color:var(--text);width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
+      .wm-x:hover{background:var(--surface-3)}
+      .wm-label{font-size:13.5px;font-weight:600;color:var(--muted);margin:2px 0 10px}
+      .wm-list{display:flex;flex-direction:column;gap:9px;overflow-y:auto;min-height:0;padding-right:2px;scrollbar-width:thin}
+      .wm-list .wallet-opt{margin-bottom:0;flex:none}
+      .wallet-opt .wic{width:38px;height:38px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex:none;overflow:hidden}
+      .wallet-opt .wic img{width:100%;height:100%;object-fit:cover;display:block}
+      .wallet-opt[disabled]{opacity:.6;cursor:wait}
+      .wm-note{font-size:12.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
       .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:#0d0d10;color:#fff;font-weight:600;font-size:14px;padding:12px 18px;border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .25s ease;z-index:120;max-width:min(92vw,480px);text-align:center}
       html[data-theme="dark"] .toast{background:#f4f4f6;color:#0d0d10}
       .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -1651,14 +1663,22 @@
               <div class="err">Pick a pair asset.</div>
             </div>
             <div class="field" id="fSeed">
-              <label>Seed liquidity</label>
-              <div class="hint" style="margin:0 0 10px">The pool opens with these two deposits — their ratio sets the opening price. Your full 1B supply is minted to your wallet first; only the seed amount goes into the pool, the rest stays in your wallet.</div>
+              <label>Seed liquidity — you choose the amount</label>
+              <div class="hint" style="margin:0 0 10px">The pool opens with these two deposits — their ratio sets the opening price. Your full 1B supply is minted to your wallet first; only the seed amount goes into the pool, the rest stays in your wallet. <b>The pair-asset seed is your liquidity, not a fee</b> — it stays in the pool as your LP position. Start small if you want: 0.05 SOL is enough to open a pool. The only fixed extra is ≈0.21 SOL of one-off creation costs (mint rent + Raydium pool rent/fees), paid on top of whatever seed you pick.</div>
               <div class="split-grid" style="grid-template-columns:1fr 1fr">
                 <div><span class="split-lbl">Your token amount</span><span class="split-in"><input type="text" inputmode="decimal" id="seedTokenAmt" value="100,000,000" autocomplete="off" /></span></div>
-                <div><span class="split-lbl">Pair asset amount</span><span class="split-in"><input type="text" inputmode="decimal" id="seedPairAmt" value="1" autocomplete="off" /><span id="seedPairUnit">SOL</span></span></div>
+                <div><span class="split-lbl">Pair asset amount</span><span class="split-in"><input type="text" inputmode="decimal" id="seedPairAmt" value="0.1" autocomplete="off" /><span id="seedPairUnit">SOL</span></span></div>
+              </div>
+              <div class="chip-row" id="seedPresets" style="margin-top:10px" role="group" aria-label="Seed amount presets">
+                <button type="button" class="chip" data-seed="0.05">0.05 · starter</button>
+                <button type="button" class="chip" data-seed="0.1">0.1</button>
+                <button type="button" class="chip" data-seed="0.25">0.25</button>
+                <button type="button" class="chip" data-seed="0.5">0.5</button>
+                <button type="button" class="chip" data-seed="1">1</button>
               </div>
               <div class="hint" id="seedHint" style="margin-top:8px"></div>
-              <div class="err">Enter a token seed above 0 (max 1,000,000,000) and a pair-asset seed above 0.</div>
+              <div class="hint" id="seedTotalHint" style="margin-top:4px;font-weight:700;color:var(--text)"></div>
+              <div class="err">Enter a token seed above 0 (max 1,000,000,000) and a pair-asset seed of at least 0.01.</div>
             </div>
             </div>
 
@@ -2050,18 +2070,17 @@
 
     <!-- Wallet modal -->
     <div class="modal-back" id="walletModal" role="dialog" aria-modal="true" aria-labelledby="walletModalTitle">
-      <div class="modal">
-        <h3 id="walletModalTitle">Connect a wallet</h3>
-        <p>Connect a Solana wallet to buy, sell, and launch coins. Browsing is free — no wallet needed.</p>
-        <button type="button" class="wallet-opt" id="optPhantom">
-          <span style="width:30px;height:30px;border-radius:8px;background:#ab9ff2;color:#2b1a63;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">P</span>
-          Phantom <span class="st" id="stPhantom">Checking…</span>
-        </button>
-        <button type="button" class="wallet-opt" id="optSolflare">
-          <span style="width:30px;height:30px;border-radius:8px;background:#fc7227;color:#4d2100;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">S</span>
-          Solflare <span class="st" id="stSolflare">Checking…</span>
-        </button>
-        <button type="button" class="btn btn-ghost" id="walletModalClose" style="width:100%;margin-top:6px">Cancel</button>
+      <div class="modal wallet-modal">
+        <div class="wm-head">
+          <h3 id="walletModalTitle">Connect a wallet</h3>
+          <button type="button" class="wm-x" id="walletModalClose" aria-label="Close">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p>A wallet stores your crypto and signs trades. Connecting is free and moves no money.</p>
+        <div class="wm-label">Connect with</div>
+        <div class="wm-list" id="walletList"></div>
+        <p class="wm-note">Vector Pad runs on Solana — only Solana wallets can connect and sign here. Don't have one yet? Pick a wallet above and you'll be taken to its official site to install it.</p>
       </div>
     </div>
 
@@ -2579,50 +2598,317 @@
       updateActionBtn();
     }
 
-    /* ================= Wallet ================= */
-    function getProvider(kind){
-      if(kind==="phantom"){
-        if(window.phantom && window.phantom.solana) return window.phantom.solana;
-        if(window.solana && window.solana.isPhantom) return window.solana;
-        return null;
+    /* ================= Wallet =================
+       Providers come from two sources, normalised to one interface
+       (connect / disconnect / publicKey / signTransaction /
+       signAllTransactions / on):
+       1. Legacy injected providers (window.phantom.solana, window.solflare,
+          window.backpack, window.okxwallet.solana, …)
+       2. Wallet Standard wallets registered by extensions — the modern
+          discovery protocol Phantom, Solflare, Backpack and others use.
+       A connect attempt settles on whichever fires first: the connect()
+       promise or the provider's "connect" event. Phantom routes approval
+       to its popup / side panel, where the promise alone can sit pending
+       with no feedback in the page — the event race plus the "check your
+       wallet" hint is what keeps the button from feeling dead there. */
+    var stdWallets = [];
+    function stdRegister(w){
+      try{
+        if(!w || !w.features || !w.features["standard:connect"]) return;
+        if(stdWallets.indexOf(w) === -1) stdWallets.push(w);
+        var wm = document.getElementById("walletModal");
+        if(wm && wm.classList.contains("open")) renderWalletList();
+      }catch(e){}
+    }
+    window.addEventListener("wallet-standard:register-wallet", function(e){
+      try{ if(e && typeof e.detail === "function") e.detail({ register: stdRegister }); }catch(err){}
+    });
+    try{ window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", { detail: { register: stdRegister } })); }catch(e){}
+
+    function makePubkey(address){
+      var S = stack();
+      if(S && S.web3 && S.web3.PublicKey){ try{ return new S.web3.PublicKey(address); }catch(e){} }
+      return { toString: function(){ return address; }, toBase58: function(){ return address; } };
+    }
+    function deserializeTx(bytes, origTx){
+      var S = stack();
+      var u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      var isV = false;
+      try{ isV = !!(origTx && origTx.message && origTx.message.staticAccountKeys); }catch(e){}
+      if(S && S.web3){
+        if(isV && S.web3.VersionedTransaction) return S.web3.VersionedTransaction.deserialize(u8);
+        if(S.web3.Transaction) return S.web3.Transaction.from(u8);
       }
-      if(kind==="solflare"){
-        if(window.solflare) return window.solflare;
-        if(window.solana && window.solana.isSolflare) return window.solana;
-        return null;
+      throw new Error("Solana stack unavailable to rebuild the signed transaction.");
+    }
+    function stdSolanaAccount(w){
+      var accts = w.accounts || [];
+      for(var i = 0; i < accts.length; i++){
+        var ch = accts[i].chains || [];
+        for(var j = 0; j < ch.length; j++){ if(String(ch[j]).indexOf("solana:") === 0) return accts[i]; }
+      }
+      return accts[0] || null;
+    }
+    function wrapStandardWallet(w){
+      var feat = function(n){ return w.features && w.features[n]; };
+      var listeners = {};
+      var wrapped = {
+        isStandard: true, name: w.name, publicKey: null, _account: null,
+        on: function(name, fn){ (listeners[name] = listeners[name] || []).push(fn); },
+        _emit: function(name, arg){ (listeners[name] || []).slice().forEach(function(f){ try{ f(arg); }catch(e){} }); },
+        _setAccount: function(acct){ wrapped._account = acct; wrapped.publicKey = makePubkey(acct.address); },
+        connect: function(opts){
+          var f = feat("standard:connect");
+          if(!f || !f.connect) return Promise.reject(new Error("Wallet does not support connect."));
+          var arg = (opts && opts.onlyIfTrusted) ? { silent: true } : undefined;
+          return Promise.resolve(f.connect(arg)).then(function(res){
+            var acct = (res && res.accounts && res.accounts[0]) || stdSolanaAccount(w);
+            if(!acct) throw new Error("Wallet returned no Solana account.");
+            wrapped._setAccount(acct);
+            wrapped._emit("connect", wrapped.publicKey);
+            return { publicKey: wrapped.publicKey };
+          });
+        },
+        disconnect: function(){
+          var f = feat("standard:disconnect");
+          wrapped.publicKey = null; wrapped._account = null;
+          if(f && f.disconnect) return Promise.resolve(f.disconnect());
+          return Promise.resolve();
+        },
+        signTransaction: function(tx){ return wrapped.signAllTransactions([tx]).then(function(r){ return r[0]; }); },
+        signAllTransactions: function(txs){
+          var f = feat("solana:signTransaction");
+          if(!f || !f.signTransaction) return Promise.reject(new Error("Wallet does not support signTransaction."));
+          if(!wrapped._account) return Promise.reject(new Error("Wallet is not connected."));
+          var inputs = txs.map(function(tx){ return { transaction: new Uint8Array(tx.serialize()), account: wrapped._account }; });
+          return Promise.resolve(f.signTransaction.apply(f, inputs)).then(function(outs){
+            return Array.prototype.map.call(outs, function(o, i){ return deserializeTx(o.signedTransaction, txs[i]); });
+          });
+        }
+      };
+      var ev = feat("standard:events");
+      if(ev && ev.on){
+        try{
+          ev.on("change", function(props){
+            if(!props || !props.accounts) return;
+            var acct = stdSolanaAccount(w);
+            if(!acct){
+              if(wrapped.publicKey){ wrapped.publicKey = null; wrapped._account = null; wrapped._emit("accountChanged", null); wrapped._emit("disconnect"); }
+              return;
+            }
+            if(!wrapped.publicKey || wrapped.publicKey.toString() !== acct.address){
+              wrapped._setAccount(acct);
+              wrapped._emit("accountChanged", wrapped.publicKey);
+            }
+          });
+        }catch(e){}
+      }
+      var pre = stdSolanaAccount(w);
+      if(pre) wrapped._setAccount(pre);
+      return wrapped;
+    }
+    function stdWalletFor(nameRe){
+      for(var i = 0; i < stdWallets.length; i++){
+        if(nameRe.test(stdWallets[i].name || "")) return wrapStandardWallet(stdWallets[i]);
       }
       return null;
     }
-    function openWalletModal(){
-      var ph = getProvider("phantom"), sf = getProvider("solflare");
-      $("stPhantom").textContent = ph ? "Detected" : "Not installed";
-      $("stPhantom").className = "st" + (ph?" ok":"");
-      $("stSolflare").textContent = sf ? "Detected" : "Not installed";
-      $("stSolflare").className = "st" + (sf?" ok":"");
-      $("walletModal").classList.add("open");
+
+    /* Solana wallets shown in the connect modal. detect() returns a
+       normalised provider or null; url is the wallet's official site,
+       opened when the wallet is not installed. */
+    var WALLET_DEFS = [
+      { id: "phantom", name: "Phantom", bg: "#ab9ff2", fg: "#2b1a63", mark: "P", url: "https://phantom.app/",
+        detect: function(){
+          if(window.phantom && window.phantom.solana) return window.phantom.solana;
+          if(window.solana && window.solana.isPhantom) return window.solana;
+          return stdWalletFor(/phantom/i);
+        } },
+      { id: "solflare", name: "Solflare", bg: "#fc7227", fg: "#4d2100", mark: "S", url: "https://solflare.com/",
+        detect: function(){
+          if(window.solflare) return window.solflare;
+          if(window.solana && window.solana.isSolflare) return window.solana;
+          return stdWalletFor(/solflare/i);
+        } },
+      { id: "backpack", name: "Backpack", bg: "#e5323e", fg: "#ffffff", mark: "B", url: "https://backpack.app/",
+        detect: function(){
+          if(window.backpack) return window.backpack;
+          return stdWalletFor(/backpack/i);
+        } },
+      { id: "coinbase", name: "Coinbase Wallet", bg: "#0052ff", fg: "#ffffff", mark: "C", url: "https://www.coinbase.com/wallet",
+        detect: function(){
+          if(window.coinbaseSolana) return window.coinbaseSolana;
+          return stdWalletFor(/coinbase/i);
+        } },
+      { id: "okx", name: "OKX Wallet", bg: "#ffffff", fg: "#0d0d10", mark: "O", url: "https://www.okx.com/web3",
+        detect: function(){
+          if(window.okxwallet && window.okxwallet.solana) return window.okxwallet.solana;
+          return stdWalletFor(/okx/i);
+        } },
+      { id: "bitget", name: "Bitget Wallet", bg: "#00f0ff", fg: "#062a33", mark: "B", url: "https://web3.bitget.com/",
+        detect: function(){
+          if(window.bitkeep && window.bitkeep.solana) return window.bitkeep.solana;
+          return stdWalletFor(/bitget|bitkeep/i);
+        } },
+      { id: "trust", name: "Trust Wallet", bg: "#0500ff", fg: "#ffffff", mark: "T", url: "https://trustwallet.com/",
+        detect: function(){
+          if(window.trustwallet && window.trustwallet.solana) return window.trustwallet.solana;
+          return stdWalletFor(/trust/i);
+        } },
+      { id: "exodus", name: "Exodus", bg: "#8952ff", fg: "#ffffff", mark: "E", url: "https://www.exodus.com/",
+        detect: function(){
+          if(window.exodus && window.exodus.solana) return window.exodus.solana;
+          return stdWalletFor(/exodus/i);
+        } },
+      { id: "glow", name: "Glow", bg: "#ff5f8f", fg: "#ffffff", mark: "G", url: "https://glow.app/",
+        detect: function(){
+          if(window.glow && window.glow.solana) return window.glow.solana;
+          if(window.glow && window.glow.connect) return window.glow;
+          if(window.solana && window.solana.isGlow) return window.solana;
+          return stdWalletFor(/glow/i);
+        } },
+      { id: "coin98", name: "Coin98", bg: "#cda349", fg: "#241a00", mark: "9", url: "https://coin98.com/",
+        detect: function(){
+          if(window.coin98 && window.coin98.sol) return window.coin98.sol;
+          return stdWalletFor(/coin98/i);
+        } }
+    ];
+    function walletDef(id){ return WALLET_DEFS.filter(function(d){ return d.id === id; })[0] || null; }
+    function getProvider(kind){
+      var d = walletDef(kind);
+      if(d){ try{ return d.detect(); }catch(e){ return null; } }
+      return null;
     }
+    /* Any other Wallet Standard wallet that supports Solana still gets a
+       row, with the icon the wallet itself supplies. */
+    function extraStdDefs(){
+      var known = [/phantom/i, /solflare/i, /backpack/i, /coinbase/i, /okx/i, /bitget|bitkeep/i, /trust/i, /exodus/i, /glow/i, /coin98/i];
+      var out = [];
+      stdWallets.forEach(function(w){
+        var nm = w.name || "Wallet";
+        if(known.some(function(re){ return re.test(nm); })) return;
+        var sol = !!(w.features && w.features["solana:signTransaction"]) ||
+          (w.chains || []).some(function(c){ return String(c).indexOf("solana:") === 0; });
+        if(!sol) return;
+        out.push({ id: "std:" + nm, name: nm, icon: w.icon || null, bg: "#3a3a44", fg: "#ffffff", mark: nm.slice(0, 1).toUpperCase(), url: null,
+          detect: function(){ return wrapStandardWallet(w); } });
+      });
+      return out;
+    }
+    function allWalletDefs(){ return WALLET_DEFS.concat(extraStdDefs()); }
+
+    function openWalletModal(){ renderWalletList(); $("walletModal").classList.add("open"); }
     function closeWalletModal(){ $("walletModal").classList.remove("open"); }
-    $("walletModalClose").addEventListener("click", closeWalletModal);
-    $("walletModal").addEventListener("click", function(e){ if(e.target===this) closeWalletModal(); });
-    $("optPhantom").addEventListener("click", function(){ connectWallet("phantom"); });
-    $("optSolflare").addEventListener("click", function(){ connectWallet("solflare"); });
-    function connectWallet(kind){
-      var prov = getProvider(kind);
+    function renderWalletList(){
+      var list = $("walletList"); if(!list) return;
+      list.innerHTML = "";
+      allWalletDefs().forEach(function(d){
+        var prov = null;
+        try{ prov = d.detect(); }catch(e){}
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "wallet-opt"; b.setAttribute("data-wallet", d.id);
+        var ico = document.createElement("span"); ico.className = "wic";
+        if(d.icon){
+          var im = document.createElement("img"); im.src = d.icon; im.alt = ""; ico.appendChild(im);
+        } else {
+          ico.style.background = d.bg; ico.style.color = d.fg; ico.textContent = d.mark;
+        }
+        var nm = document.createElement("span"); nm.textContent = d.name;
+        var st = document.createElement("span");
+        st.className = "st" + (prov ? " ok" : "");
+        st.textContent = prov ? "Detected" : "Not installed";
+        b.appendChild(ico); b.appendChild(nm); b.appendChild(st);
+        b.addEventListener("click", function(){ onWalletRowClick(d, b, st); });
+        list.appendChild(b);
+      });
+    }
+    function onWalletRowClick(d, btn, st){
+      var prov = null;
+      try{ prov = d.detect(); }catch(e){}
       if(!prov){
-        window.open(kind==="phantom" ? "https://phantom.app/" : "https://solflare.com/", "_blank", "noopener");
-        toast("No "+(kind==="phantom"?"Phantom":"Solflare")+" wallet found — install it, then try again.");
+        if(d.url) window.open(d.url, "_blank", "noopener");
+        toast(d.name + " is not installed — opening its official site. Install it, then try again.");
         return;
       }
-      var p = prov.connect ? prov.connect() : Promise.reject(new Error("no connect"));
-      Promise.resolve(p).then(function(res){
-        var pk = (res && res.publicKey) || prov.publicKey;
-        if(!pk) throw new Error("no key");
+      connectWallet(d.id, prov, btn, st);
+    }
+    $("walletModalClose").addEventListener("click", closeWalletModal);
+    $("walletModal").addEventListener("click", function(e){ if(e.target===this) closeWalletModal(); });
+
+    var connectSeq = 0;
+    function connectWallet(kind, prov, btn, st){
+      prov = prov || getProvider(kind);
+      var def = walletDef(kind);
+      var name = def ? def.name : "Wallet";
+      if(!prov){
+        if(def && def.url) window.open(def.url, "_blank", "noopener");
+        toast(name + " wallet not found — install it, then try again.");
+        return;
+      }
+      var mySeq = ++connectSeq;
+      var done = false;
+      if(btn) btn.disabled = true;
+      if(st){ st.textContent = "Check your wallet…"; st.className = "st"; }
+      var hintTimer = setTimeout(function(){
+        if(!done && mySeq === connectSeq) toast("Waiting for " + name + " — approve the connection in the wallet popup or side panel.");
+      }, 5000);
+      function cleanup(){
+        clearTimeout(hintTimer);
+        if(btn) btn.disabled = false;
+        if(st){ st.textContent = "Detected"; st.className = "st ok"; }
+      }
+      function finish(pk){
+        if(done || mySeq !== connectSeq) return;
+        if(!pk){ fail(new Error("Wallet returned no public key.")); return; }
+        done = true; cleanup();
         state.wallet = { provider: prov, pubkey: pk.toString(), kind: kind };
+        watchProvider(prov);
         closeWalletModal();
         onWalletChanged();
-        toast("Wallet connected: "+truncAddr(state.wallet.pubkey));
+        toast("Wallet connected: " + truncAddr(state.wallet.pubkey));
         loadBalances();
-      }).catch(function(){ toast("Wallet connection was cancelled or failed."); });
+      }
+      function fail(err){
+        if(done || mySeq !== connectSeq) return;
+        done = true; cleanup();
+        if(err && err.code === 4001) toast("Connection rejected in " + name + " — click " + name + " again and approve it in the wallet.");
+        else if(err && err.message) toast("Wallet connection failed: " + err.message);
+        else toast("Wallet connection was cancelled or failed.");
+      }
+      if(prov.on){
+        try{ prov.on("connect", function(pk){ finish(pk || prov.publicKey); }); }catch(e){}
+      }
+      var p;
+      try{ p = prov.connect ? prov.connect() : Promise.reject(new Error("Wallet does not support connect().")); }
+      catch(e){ fail(e); return; }
+      Promise.resolve(p).then(function(res){
+        finish((res && res.publicKey) || prov.publicKey);
+      }, fail);
+    }
+    function watchProvider(prov){
+      if(!prov || !prov.on || prov._vpWatched) return;
+      prov._vpWatched = true;
+      try{
+        prov.on("accountChanged", function(pk){
+          if(!state.wallet || state.wallet.provider !== prov) return;
+          if(!pk){ clearWalletState(); toast("Wallet disconnected"); return; }
+          if(pk.toString() !== state.wallet.pubkey){
+            state.wallet.pubkey = pk.toString();
+            state.solBal = null; state.balances = {};
+            onWalletChanged(); loadBalances();
+            toast("Wallet account changed: " + truncAddr(state.wallet.pubkey));
+          }
+        });
+        prov.on("disconnect", function(){
+          if(!state.wallet || state.wallet.provider !== prov) return;
+          clearWalletState(); toast("Wallet disconnected");
+        });
+      }catch(e){}
+    }
+    function clearWalletState(){
+      state.wallet = null; state.solBal = null; state.balances = {};
+      $("walletPop").style.display = "none";
+      onWalletChanged();
     }
     $("walletBtn").addEventListener("click", function(){
       if(state.wallet){
@@ -2635,14 +2921,39 @@
     });
     $("walletCopyBtn").addEventListener("click", function(){ if(state.wallet) copyText(state.wallet.pubkey, "Wallet address copied"); });
     $("walletDisconnectBtn").addEventListener("click", function(){
+      connectSeq++;
       if(state.wallet && state.wallet.provider.disconnect){
-        try{ state.wallet.provider.disconnect(); }catch(e){}
+        try{ var r = state.wallet.provider.disconnect(); if(r && r.catch) r.catch(function(){}); }catch(e){}
       }
-      state.wallet = null; state.solBal = null; state.balances = {};
-      $("walletPop").style.display="none";
-      onWalletChanged();
+      clearWalletState();
       toast("Wallet disconnected");
     });
+    /* Returning visitors who already trust this site reconnect silently —
+       the wallet only answers if it was approved here before. */
+    (function eagerConnect(){
+      var tries = ["phantom", "solflare", "backpack"];
+      var i = 0;
+      function next(){
+        if(state.wallet || i >= tries.length) return;
+        var kind = tries[i++];
+        var prov = getProvider(kind);
+        if(!prov){ next(); return; }
+        var p;
+        try{ p = prov.connect ? prov.connect({ onlyIfTrusted: true }) : null; }
+        catch(e){ next(); return; }
+        if(!p){ next(); return; }
+        Promise.resolve(p).then(function(res){
+          var pk = (res && res.publicKey) || prov.publicKey;
+          if(pk && !state.wallet){
+            state.wallet = { provider: prov, pubkey: pk.toString(), kind: kind };
+            watchProvider(prov);
+            onWalletChanged();
+            loadBalances();
+          } else next();
+        }, next);
+      }
+      next();
+    })();
     function onWalletChanged(){
       var btn = $("walletBtn");
       if(state.wallet){
@@ -3046,19 +3357,39 @@
 
     /* ---- Step 2: seed liquidity ---- */
     function parseAmtStr(v){ return parseFloat(String(v == null ? "" : v).replace(/,/g, "")); }
+    var CREATION_COST_SOL = 0.21;
     function updateSeedSummary(){
       var st = parseAmtStr($("seedTokenAmt").value), sp = parseAmtStr($("seedPairAmt").value);
       var tick = $("inTicker").value.trim();
+      var presetRow = $("seedPresets");
+      if(presetRow){
+        presetRow.querySelectorAll(".chip").forEach(function(c){
+          c.classList.toggle("active", !isNaN(sp) && parseFloat(c.getAttribute("data-seed")) === sp);
+        });
+      }
       if(state.pairSel && !isNaN(st) && st > 0 && !isNaN(sp) && sp > 0){
         $("sumInit").textContent = fmtTokens(st, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(sp, 4) + " " + state.pairSel.sym;
-        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~0.19 SOL in Raydium fees + rent on mainnet.";
+        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~0.19 SOL in Raydium fees + rent on mainnet, plus ~0.0035 SOL for the mint and network fees (≈0.21 SOL total, fixed — it does not scale with your seed).";
+        if(state.pairSel.sym === "SOL"){
+          $("seedTotalHint").textContent = "Total needed in your wallet ≈ " + fmtTokens(sp + CREATION_COST_SOL, 3) + " SOL — that's your " + fmtTokens(sp, 4) + " SOL seed + ≈0.21 SOL creation costs. Lower the seed above if your balance is short.";
+        } else {
+          $("seedTotalHint").textContent = "Total needed: " + fmtTokens(sp, 4) + " " + state.pairSel.sym + " for the seed + ≈0.21 SOL in your wallet for creation costs.";
+        }
       } else {
         $("sumInit").textContent = "Not set";
         $("seedHint").textContent = "";
+        $("seedTotalHint").textContent = "";
       }
     }
     $("seedTokenAmt").addEventListener("input", function(){ $("fSeed").classList.remove("invalid"); updateSeedSummary(); });
     $("seedPairAmt").addEventListener("input", function(){ $("fSeed").classList.remove("invalid"); updateSeedSummary(); });
+    $("seedPresets").querySelectorAll(".chip").forEach(function(c){
+      c.addEventListener("click", function(){
+        $("seedPairAmt").value = c.getAttribute("data-seed");
+        $("fSeed").classList.remove("invalid");
+        updateSeedSummary();
+      });
+    });
 
     /* ---- Step 3: trading fee (1%–10%) ---- */
     function fmtFeePct(v){ return (v % 1 ? v.toFixed(1) : String(v)) + "%"; }
@@ -3233,7 +3564,7 @@
       if(n === 2){
         if(!state.pairSel){ $("fPair").classList.add("invalid"); return false; }
         var st = parseAmtStr($("seedTokenAmt").value), sp = parseAmtStr($("seedPairAmt").value);
-        var okSeed = !isNaN(st) && st > 0 && st <= 1000000000 && !isNaN(sp) && sp > 0;
+        var okSeed = !isNaN(st) && st > 0 && st <= 1000000000 && !isNaN(sp) && sp >= 0.01;
         $("fSeed").classList.toggle("invalid", !okSeed);
         return okSeed;
       }
@@ -3325,7 +3656,12 @@
       var stR = parseAmtStr($("seedTokenAmt").value), spR = parseAmtStr($("seedPairAmt").value);
       h += reviewRow("Seed liquidity", fmtTokens(stR, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(spR, 4) + " " + (p ? p.sym : ""));
       h += reviewRow("Pool fee config", "Raydium CPMM · 0.25% trade fee (config #0)");
-      h += reviewRow("Est. total cost", "≈ 0.20 SOL (mint ~0.0035 + pool ~0.19 + network fees)");
+      if(p && p.sym === "SOL" && !isNaN(spR) && spR > 0){
+        h += reviewRow("Creation costs", "≈ 0.21 SOL (mint ~0.0035 + pool ~0.19 + network fees)");
+        h += reviewRow("Total needed in wallet", "≈ " + fmtTokens(spR + CREATION_COST_SOL, 3) + " SOL (" + fmtTokens(spR, 4) + " SOL seed + ≈0.21 SOL costs)");
+      } else {
+        h += reviewRow("Est. total cost", "≈ 0.21 SOL creation costs (mint ~0.0035 + pool ~0.19 + network fees), plus your " + (p ? p.sym : "pair-asset") + " seed above");
+      }
       h += reviewRow("Mint authority", "Revoked at launch");
       $("reviewBox").innerHTML = h;
       updateSeedSummary();
@@ -3463,9 +3799,12 @@
         var balLamports = await conn.getBalance(owner);
         if(p.sym === "SOL"){
           var needLamports = Number(seedPairRaw) + 210000000;
-          if(balLamports < needLamports) throw new Error("Not enough SOL on " + state.network + ": the seed plus ~0.21 SOL of creation costs needs ≈ " + (needLamports / 1e9).toFixed(3) + " SOL, but your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL.");
+          if(balLamports < needLamports){
+            var maxSeed = Math.max(0, (balLamports - 210000000) / 1e9);
+            throw new Error("Not enough SOL on " + state.network + ": your " + fmtTokens(parseAmtStr($("seedPairAmt").value), 4) + " SOL seed plus ~0.21 SOL of fixed creation costs needs ≈ " + (needLamports / 1e9).toFixed(3) + " SOL, but your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL. You don't need a 1 SOL seed — go Back to Step 2 (Pair) and lower it: with this balance you can seed up to ≈ " + maxSeed.toFixed(3) + " SOL (e.g. pick the 0.05 starter preset, total ≈0.26 SOL).");
+          }
         } else {
-          if(balLamports < 210000000) throw new Error("Not enough SOL on " + state.network + " for creation costs (~0.21 SOL): your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL.");
+          if(balLamports < 210000000) throw new Error("Not enough SOL on " + state.network + " for the fixed creation costs (~0.21 SOL — mint + Raydium pool rent/fees, separate from your " + p.sym + " seed): your wallet holds " + (balLamports / 1e9).toFixed(4) + " SOL. Top up a little SOL or wait — this 0.21 SOL is set by Solana/Raydium rent, not by Vector Pad.");
           var pairAta = spl.getAssociatedTokenAddressSync(new w3.PublicKey(p.mint), owner, false, new w3.PublicKey(p.programId));
           var pairBal = await conn.getTokenAccountBalance(pairAta).catch(function(){ return null; });
           if(!pairBal || !pairBal.value || BigInt(pairBal.value.amount) < BigInt(seedPairRaw)){
