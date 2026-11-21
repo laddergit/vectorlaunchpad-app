@@ -182,23 +182,27 @@
          Title + subtitle on the left, the key stats as plain label-over-value
          columns on the right in the same row — no stat cards — then a rule,
          the filter tabs and the sort bar, each with room to breathe. */
-      .explore-head{display:flex;align-items:flex-start;justify-content:space-between;gap:26px 40px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid var(--border);margin-bottom:26px}
+      /* Bottom-aligned, Ascend-style: the title block, the stat columns and
+         the Trending block all land on one shared baseline at the bottom of
+         the header — subtitle, big values and the Trending caption in a row.
+         Top-aligning them left the stat text hugging the top edge of the
+         header, floating high above the title's baseline. */
+      .explore-head{display:flex;align-items:flex-end;justify-content:space-between;gap:38px 56px;flex-wrap:wrap;padding-top:8px;padding-bottom:36px;border-bottom:1px solid var(--border);margin-bottom:32px}
       .explore-head .page-title{margin:0 0 8px}
       .explore-head .page-sub{margin:0}
       .explore-head-l{flex:none;padding-top:2px}
       /* Stat group, Ascend-style: one identical structure per column — a
          small sentence-case label with an info icon on top, one big value
          under it. No sublabels (they were what truncated and wrapped), no
-         cards. Every value — number or dash — sits in the same fixed-height
-         box on the same baseline, and an empty stat shows a solid dash bar
-         with the same visual weight as a number instead of a thin glyph.
-         Columns are equal width with faint vertical dividers. */
-      #statsRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;flex:1 1 600px;min-width:min(100%,520px)}
-      #statsRow .stat{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;display:flex;flex-direction:column;min-width:0}
-      #statsRow .stat:first-child{padding-left:0}
-      #statsRow .stat:last-child{padding-right:0}
-      #statsRow .stat + .stat{border-left:1px solid var(--border)}
-      #statsRow .stat .lbl{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);line-height:1.25;min-height:0;display:flex;align-items:center;gap:4px;margin-bottom:7px;white-space:nowrap}
+         cards, no dividers. Every value — number or dash — sits in the same
+         fixed-height box on the same baseline, and an empty stat shows a
+         solid dash bar with the same visual weight as a number instead of
+         a thin glyph. Columns size to their content and spread apart with
+         wide gaps, Ascend-style, wrapping to a second line rather than
+         ever squeezing together. */
+      #statsRow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:22px 40px;margin:0;flex:1 1 560px;min-width:min(100%,480px)}
+      #statsRow .stat{background:none;border:0;border-radius:0;box-shadow:none;padding:0;display:flex;flex-direction:column;min-width:0}
+      #statsRow .stat .lbl{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);line-height:1.25;min-height:0;display:flex;align-items:center;gap:4px;margin-bottom:9px;white-space:nowrap}
       #statsRow .stat .lbl .info-ico{color:var(--faint);flex:none}
       #statsRow .stat .val{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.01em;height:34px;display:flex;align-items:center;white-space:nowrap}
       #statsRow .dashbar{display:inline-block;width:24px;height:5px;border-radius:3px;background:var(--text)}
@@ -229,11 +233,9 @@
         .trending-block{align-items:flex-start}
       }
       @media (max-width:680px){
-        .explore-head{padding-bottom:22px;margin-bottom:22px}
-        #statsRow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:20px}
-        #statsRow .stat{padding:0 12px}
-        #statsRow .stat:nth-child(3n+1){padding-left:0;border-left:0}
-        #statsRow .stat:nth-child(3n){padding-right:0}
+        .explore-head{gap:28px;padding-bottom:26px;margin-bottom:24px}
+        #statsRow{gap:24px 28px}
+        #statsRow .stat{flex:1 1 27%}
         #statsRow .stat .val{font-size:24px;height:30px}
         #statsRow .stat .lbl{font-size:11.5px}
         #view-explore .tabs{margin-bottom:18px}
