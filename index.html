@@ -408,6 +408,12 @@
       .wallet-opt .wic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
       .wallet-opt[disabled]{opacity:.6;cursor:wait}
       .wm-note{font-size:12.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
+      .wm-alert{border:1px solid var(--red);background:var(--red-bg);border-radius:12px;padding:13px 14px;margin:0 0 12px;flex:none}
+      .wm-alert[hidden]{display:none}
+      .wm-alert .wa-title{font-weight:800;font-size:14px;margin-bottom:5px;color:var(--text)}
+      .wm-alert p{font-size:13px;line-height:1.55;color:var(--text);margin:0 0 10px}
+      .wm-alert .wa-alt{margin:10px 0 0;color:var(--muted)}
+      .wm-alert .btn{width:100%}
       .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:#0d0d10;color:#fff;font-weight:600;font-size:14px;padding:12px 18px;border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .25s ease;z-index:120;max-width:min(92vw,480px);text-align:center}
       html[data-theme="dark"] .toast{background:#f4f4f6;color:#0d0d10}
       .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -2087,6 +2093,12 @@
         </div>
         <p>A wallet stores your crypto and signs trades. Connecting is free and moves no money.</p>
         <div class="wm-label">Connect with</div>
+        <div class="wm-alert" id="wmNetAlert" role="alert" hidden>
+          <div class="wa-title" id="wmNetAlertTitle"></div>
+          <p id="wmNetAlertText"></p>
+          <button type="button" class="btn btn-grad" id="wmNetSwitchBtn"></button>
+          <p class="wa-alt" id="wmNetAlertAlt"></p>
+        </div>
         <div class="wm-list" id="walletList"></div>
         <p class="wm-note">Vector Pad runs on Solana — only Solana wallets can connect and sign here. Don't have one yet? Pick a wallet above and you'll be taken to its official site to install it.</p>
       </div>
@@ -2692,9 +2704,10 @@
       var listeners = {};
       var wrapped = {
         isStandard: true, name: w.name, publicKey: null, _account: null,
+        _chains: null, _walletChains: (w.chains || null),
         on: function(name, fn){ (listeners[name] = listeners[name] || []).push(fn); },
         _emit: function(name, arg){ (listeners[name] || []).slice().forEach(function(f){ try{ f(arg); }catch(e){} }); },
-        _setAccount: function(acct){ wrapped._account = acct; wrapped.publicKey = makePubkey(acct.address); },
+        _setAccount: function(acct){ wrapped._account = acct; wrapped._chains = (acct && acct.chains) || null; wrapped.publicKey = makePubkey(acct.address); },
         connect: function(opts){
           var f = feat("standard:connect");
           if(!f || !f.connect) return Promise.reject(new Error("Wallet does not support connect."));
@@ -2709,7 +2722,7 @@
         },
         disconnect: function(){
           var f = feat("standard:disconnect");
-          wrapped.publicKey = null; wrapped._account = null;
+          wrapped.publicKey = null; wrapped._account = null; wrapped._chains = null;
           if(f && f.disconnect) return Promise.resolve(f.disconnect());
           return Promise.resolve();
         },
@@ -2847,7 +2860,7 @@
     }
     function allWalletDefs(){ return WALLET_DEFS.concat(extraStdDefs()); }
 
-    function openWalletModal(){ renderWalletList(); $("walletModal").classList.add("open"); }
+    function openWalletModal(){ hideNetAlert(); renderWalletList(); $("walletModal").classList.add("open"); }
     function closeWalletModal(){ $("walletModal").classList.remove("open"); }
     function renderWalletList(){
       var list = $("walletList"); if(!list) return;
@@ -2904,6 +2917,78 @@
       if(d){ try{ push(d.detect()); }catch(e){} }
       return out;
     }
+    /* ---- Wallet/app network-mismatch detection ----
+       Wallet Standard accounts carry their chains ("solana:mainnet",
+       "solana:devnet", "solana:testnet"). A wallet locked to test
+       networks — Phantom with Testnet Mode on — exposes only
+       devnet/testnet chains, and it never shows an approval for a
+       mainnet app: connect() simply hangs. Reading the chains lets the
+       app name the mismatch instead of spinning on "Check your wallet…". */
+    function netFromChains(chains){
+      if(!chains || !chains.length) return null;
+      var main = false, test = false;
+      for(var i = 0; i < chains.length; i++){
+        var c = String(chains[i]);
+        if(c === "solana:mainnet") main = true;
+        else if(c === "solana:devnet" || c === "solana:testnet") test = true;
+      }
+      if(main && !test) return "mainnet";
+      if(test && !main) return "devnet";
+      return null;
+    }
+    function provNetHint(prov){
+      if(!prov || !prov.isStandard) return null;
+      return netFromChains(prov._chains) || netFromChains(prov._walletChains);
+    }
+    function stdNetHint(kind){
+      var re = STD_RE[kind];
+      if(!re) return null;
+      for(var i = 0; i < stdWallets.length; i++){
+        if(!re.test(stdWallets[i].name || "")) continue;
+        var acct = null;
+        try{ acct = stdSolanaAccount(stdWallets[i]); }catch(e){}
+        var n = netFromChains(acct && acct.chains) || netFromChains(stdWallets[i].chains);
+        if(n) return n;
+      }
+      return null;
+    }
+    function walletNetHint(kind, prov){
+      return provNetHint(prov) || stdNetHint(kind);
+    }
+    function hideNetAlert(){ var a = $("wmNetAlert"); if(a) a.hidden = true; }
+    function showNetAlert(opts){
+      var a = $("wmNetAlert"); if(!a) return;
+      var title = $("wmNetAlertTitle"), text = $("wmNetAlertText"),
+          btn = $("wmNetSwitchBtn"), alt = $("wmNetAlertAlt");
+      var appLabel = NETWORKS[state.network].label;
+      var targetNet, altText;
+      if(opts.mode === "mismatch"){
+        var wLabel = NETWORKS[opts.walletNet].label;
+        title.textContent = "Network mismatch — " + opts.name + " is on " + wLabel;
+        text.textContent = opts.name + " is set to Solana " + wLabel +
+          (opts.walletNet === "devnet" ? " (in Phantom this is Testnet Mode — the yellow banner in the wallet)" : "") +
+          ", but Vector Pad is set to " + appLabel + ". A wallet only answers connection requests on its own network, so no approval popup appears and the request hangs. Match the two networks, then click " + opts.name + " again.";
+        targetNet = opts.walletNet;
+        altText = opts.walletNet === "devnet"
+          ? "Or keep Vector Pad on Mainnet: open " + opts.name + " → Settings → Developer settings → turn Testnet Mode off, then click " + opts.name + " again."
+          : "Or keep Vector Pad on Devnet: switch " + opts.name + " itself back to Mainnet in its settings, then click " + opts.name + " again.";
+      } else {
+        title.textContent = opts.name + " didn't respond";
+        text.textContent = "No approval appeared in " + opts.name + " within 45 seconds. The most common cause is a network mismatch: if " + opts.name +
+          ' shows a yellow "Testnet Mode" banner, it is on Devnet while Vector Pad is on ' + appLabel +
+          " — the request never reaches the approval screen. Match the networks and try again, and make sure " + opts.name + " is unlocked with its panel open.";
+        targetNet = state.network === "mainnet" ? "devnet" : "mainnet";
+        altText = "Networks already match? Close other tabs that use " + opts.name + ", unlock it, and click " + opts.name + " again.";
+      }
+      btn.textContent = "Switch Vector Pad to " + NETWORKS[targetNet].label + " and try again";
+      btn.onclick = function(){
+        hideNetAlert();
+        setNetwork(targetNet);
+        toast("Vector Pad is now on " + NETWORKS[targetNet].label + " — click " + opts.name + " above to connect.");
+      };
+      alt.textContent = altText;
+      a.hidden = false;
+    }
     function connectWallet(kind, prov, btn, st){
       prov = prov || getProvider(kind);
       var def = walletDef(kind);
@@ -2913,9 +2998,24 @@
         toast(name + " wallet not found — install it, then try again.");
         return;
       }
+      hideNetAlert();
+      /* If the wallet's network is already visible (Wallet Standard
+         registrations expose their accounts' chains) and it differs from
+         the app's, the connect request would never reach an approval
+         screen — Phantom in Testnet Mode ignores mainnet requests.
+         Say so up front instead of spinning. */
+      var preNet = walletNetHint(kind, prov);
+      if(preNet && preNet !== state.network){
+        if(st){ st.textContent = "Wrong network"; st.className = "st"; }
+        showNetAlert({ mode: "mismatch", name: name, walletNet: preNet });
+        toast(name + " is on " + NETWORKS[preNet].label + " but the app is on " + NETWORKS[state.network].label + " — see the note in the wallet window.");
+        return;
+      }
       var candidates = providerCandidates(kind, prov);
       var mySeq = ++connectSeq;
       var done = false;
+      var sawTimeout = false;
+      var deadline = Date.now() + 45000;
       if(btn) btn.disabled = true;
       if(st){ st.textContent = "Check your wallet…"; st.className = "st"; }
       var hintTimer = setTimeout(function(){
@@ -2929,6 +3029,20 @@
       function finish(pk, usedProv){
         if(done || mySeq !== connectSeq) return;
         if(!pk){ attemptFail(new Error("Wallet returned no public key."), usedProv); return; }
+        /* The wallet answered — but on which network? If its chains say
+           devnet/testnet while the app is on mainnet (or the reverse),
+           every later signature would fail, so stop here with guidance
+           instead of connecting into a broken state. */
+        var wnet = walletNetHint(kind, usedProv);
+        if(wnet && wnet !== state.network){
+          done = true; clearTimeout(hintTimer);
+          if(btn) btn.disabled = false;
+          if(st){ st.textContent = "Wrong network"; st.className = "st"; }
+          try{ if(usedProv.disconnect){ var dr = usedProv.disconnect(); if(dr && dr.catch) dr.catch(function(){}); } }catch(e){}
+          showNetAlert({ mode: "mismatch", name: name, walletNet: wnet });
+          toast(name + " answered on " + NETWORKS[wnet].label + " but the app is on " + NETWORKS[state.network].label + " — see the note in the wallet window.");
+          return;
+        }
         done = true; cleanup();
         state.wallet = { provider: usedProv, pubkey: pk.toString(), kind: kind };
         watchProvider(usedProv);
@@ -2940,7 +3054,12 @@
       function finalFail(err){
         if(done || mySeq !== connectSeq) return;
         done = true; cleanup();
-        if(err && (err.code === 4001 || /reject|denied|cancel/i.test(err.message || "")))
+        if(sawTimeout){
+          if(st){ st.textContent = "No response"; st.className = "st"; }
+          showNetAlert({ mode: "noresponse", name: name });
+          toast(name + " didn't respond in 45 seconds — see the note in the wallet window for the likely cause.");
+        }
+        else if(err && (err.code === 4001 || /reject|denied|cancel/i.test(err.message || "")))
           toast("Connection rejected in " + name + " — click " + name + " again and approve it in the wallet.");
         else if(err && err.message) toast(name + " didn't respond: " + err.message + " Make sure the wallet is unlocked, then try again.");
         else toast(name + " didn't respond — make sure it is unlocked, then try again.");
@@ -2960,13 +3079,20 @@
         var settled = false;
         /* If the wallet never answers (Phantom can leave a request pending
            forever when its panel is closed), clear the stuck request and
-           fall through to the next route instead of spinning forever. */
+           fall through to the next route instead of spinning forever.
+           All routes share one 45-second deadline — each gets at most
+           25s — and when it passes, the attempt ends with the clear
+           no-response note instead of another silent spin. */
+        var waitMs = Math.max(3000, Math.min(25000, deadline - Date.now()));
         var watchdog = setTimeout(function(){
           if(settled || done || mySeq !== connectSeq) return;
-          settled = true;
+          settled = true; sawTimeout = true;
           try{ if(prov.disconnect){ var r = prov.disconnect(); if(r && r.catch) r.catch(function(){}); } }catch(e){}
-          attemptFail(new Error(name + " did not answer in time."), prov);
-        }, 45000);
+          if(attemptIdx >= candidates.length - 1 || Date.now() >= deadline)
+            finalFail(new Error(name + " did not answer in time."));
+          else
+            attemptFail(new Error(name + " did not answer in time."), prov);
+        }, waitMs);
         function ok(pk){ if(settled) return; settled = true; clearTimeout(watchdog); finish(pk || prov.publicKey, prov); }
         function bad(err){ if(settled) return; settled = true; clearTimeout(watchdog); attemptFail(err, prov); }
         if(prov.on){
@@ -3038,6 +3164,14 @@
         if(!p){ next(); return; }
         Promise.resolve(p).then(function(res){
           var pk = (res && res.publicKey) || prov.publicKey;
+          var en = provNetHint(prov);
+          if(pk && en && en !== state.network){
+            /* Silently reconnecting a wallet that sits on the other
+               network (e.g. Phantom in Testnet Mode) would break every
+               signature — leave it disconnected instead. */
+            try{ if(prov.disconnect){ var er = prov.disconnect(); if(er && er.catch) er.catch(function(){}); } }catch(e){}
+            next(); return;
+          }
           if(pk && !state.wallet){
             state.wallet = { provider: prov, pubkey: pk.toString(), kind: kind };
             watchProvider(prov);
