@@ -182,30 +182,51 @@
          Title + subtitle on the left, the key stats as plain label-over-value
          columns on the right in the same row — no stat cards — then a rule,
          the filter tabs and the sort bar, each with room to breathe. */
-      .explore-head{display:flex;align-items:flex-end;justify-content:space-between;gap:26px 48px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid var(--border);margin-bottom:26px}
+      .explore-head{display:flex;align-items:flex-start;justify-content:space-between;gap:26px 40px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid var(--border);margin-bottom:26px}
       .explore-head .page-title{margin:0 0 8px}
       .explore-head .page-sub{margin:0}
-      .explore-head-l{flex:none}
-      /* Stat row, measured from the rendered Ascend Explore header:
-         values ~34px/800, one size, one shared baseline; labels sit directly
-         above the value and a wrapped label grows upward, never moving the
-         value; columns equal width with faint vertical dividers. Applied
-         here as: an equal 6-column grid, a fixed two-line label block
-         bottom-aligned to the value, and a fixed-height value box so a
-         number and a "—" placeholder occupy the exact same line. */
-      #statsRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;flex:1 1 640px;min-width:min(100%,560px)}
-      #statsRow .stat{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+      .explore-head-l{flex:none;padding-top:2px}
+      /* Stat group, Ascend-style: one identical structure per column — a
+         small sentence-case label with an info icon on top, one big value
+         under it. No sublabels (they were what truncated and wrapped), no
+         cards. Every value — number or dash — sits in the same fixed-height
+         box on the same baseline, and an empty stat shows a solid dash bar
+         with the same visual weight as a number instead of a thin glyph.
+         Columns are equal width with faint vertical dividers. */
+      #statsRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;flex:1 1 600px;min-width:min(100%,520px)}
+      #statsRow .stat{background:none;border:0;border-radius:0;box-shadow:none;padding:0 16px;display:flex;flex-direction:column;min-width:0}
       #statsRow .stat:first-child{padding-left:0}
       #statsRow .stat:last-child{padding-right:0}
       #statsRow .stat + .stat{border-left:1px solid var(--border)}
-      #statsRow .stat .lbl{font-size:10.5px;line-height:1.3;min-height:28px;display:flex;align-items:flex-end;margin-bottom:6px}
+      #statsRow .stat .lbl{font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);line-height:1.25;min-height:0;display:flex;align-items:center;gap:4px;margin-bottom:7px;white-space:nowrap}
+      #statsRow .stat .lbl .info-ico{color:var(--faint);flex:none}
       #statsRow .stat .val{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.01em;height:34px;display:flex;align-items:center;white-space:nowrap}
-      #statsRow .stat .sub{font-size:12px;line-height:1.35;min-height:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      #statsRow .dashbar{display:inline-block;width:24px;height:5px;border-radius:3px;background:var(--text)}
+      /* Trending block at the far right of the header: overlapping coin
+         circles (the #1 token largest, centre-front) with a caption under.
+         Filled only with real launches from the on-chain scan. */
+      .trending-block{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+      .trend-lbl{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+      .trend-dot{width:7px;height:7px;border-radius:50%;background:#5EB9E8;box-shadow:0 0 10px #5EB9E8}
+      .trend-circles{display:flex;align-items:center;min-height:56px}
+      .tc{border-radius:50%;border:2px solid var(--bg);background:var(--surface-2);padding:0;overflow:hidden;cursor:pointer;flex:none;position:relative;transition:transform .15s ease}
+      .tc img{width:100%;height:100%;object-fit:cover;display:block}
+      .tc:hover{transform:translateY(-3px)}
+      .tc + .tc{margin-left:-12px}
+      .tc.rank1{width:56px;height:56px}
+      .tc.rank2,.tc.rank3{width:46px;height:46px}
+      .tc.rank4,.tc.rank5{width:40px;height:40px}
+      .tc-empty{cursor:default;border:2px dashed var(--border);background:none;display:flex;align-items:center;justify-content:center;width:46px;height:46px}
+      .tc-empty img{width:24px;height:24px;object-fit:contain;opacity:.55}
+      .tc-empty:hover{transform:none}
+      .trend-cap{font-size:12px;color:var(--faint);font-weight:600;white-space:nowrap}
+      @media (prefers-reduced-motion: reduce){ .tc{transition:none} }
       #view-explore .tabs{margin-bottom:22px}
       #view-explore .controls{margin-bottom:20px}
       @media (max-width:1020px){
         .explore-head{flex-direction:column;align-items:flex-start;gap:24px}
         #statsRow{flex:none;width:100%;min-width:0}
+        .trending-block{align-items:flex-start}
       }
       @media (max-width:680px){
         .explore-head{padding-bottom:22px;margin-bottom:22px}
@@ -214,7 +235,7 @@
         #statsRow .stat:nth-child(3n+1){padding-left:0;border-left:0}
         #statsRow .stat:nth-child(3n){padding-right:0}
         #statsRow .stat .val{font-size:24px;height:30px}
-        #statsRow .stat .sub{font-size:11px}
+        #statsRow .stat .lbl{font-size:11.5px}
         #view-explore .tabs{margin-bottom:18px}
         #view-explore .controls{margin-bottom:16px}
       }
@@ -1008,7 +1029,6 @@
             </button>
             <span class="more-pop" id="morePop" style="display:none">
               <button type="button" class="nav-btn" data-nav="create">Create token</button>
-              <button type="button" class="nav-btn" data-nav="token">Vector token</button>
               <button type="button" data-docs="overview">Docs</button>
             </span>
           </span>
@@ -1047,7 +1067,6 @@
         <button type="button" class="nav-btn" data-nav="portfolio"><span class="mp-txt"><span class="mp-title">Portfolio</span><span class="mp-sub">What you hold, and what it's worth</span></span></button>
         <div class="mp-sep"></div>
         <button type="button" class="nav-btn" data-nav="create"><span class="mp-txt"><span class="mp-title">Create token</span><span class="mp-sub">Launch a token, paired with SOL, USDC or a stock</span></span></button>
-        <button type="button" class="nav-btn" data-nav="token"><span class="mp-txt"><span class="mp-title">Vector token</span><span class="mp-sub">$VECTOR — coming soon on pump.fun</span></span></button>
         <button type="button" data-docs="overview"><span class="mp-txt"><span class="mp-title">Docs</span><span class="mp-sub">How Vector Pad works, in detail</span></span><span class="mp-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg></span></button>
         <div class="mp-sep"></div>
         <button type="button" id="menuThemeBtn"><span class="mp-txt"><span class="mp-title" id="menuThemeTitle">Light mode</span><span class="mp-sub">Switch the theme</span></span><span class="mp-ico"><svg id="menuThemeIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg id="menuThemeIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></span></button>
@@ -1065,13 +1084,6 @@
       </div>
     </div>
 
-    <!-- ================= TICKER ================= -->
-    <div class="ticker" aria-label="Live market ticker">
-      <div class="ticker-track" id="tickerTrack">
-        <span class="tick-item"><span class="spin"></span> Loading live prices…</span>
-      </div>
-    </div>
-
     <main class="wrap">
       <!-- ================= EXPLORE ================= -->
       <section class="view active" id="view-explore">
@@ -1082,12 +1094,18 @@
           </div>
 
           <div class="stats" id="statsRow">
-            <div class="stat"><div class="lbl">Listed tokens</div><div class="val num" id="statListedVal">1</div><div class="sub" id="statListedSub">$VECTOR · soon</div></div>
-            <div class="stat"><div class="lbl">24h Volume</div><div class="val num">—</div><div class="sub">At launch</div></div>
-            <div class="stat"><div class="lbl">24h Transactions</div><div class="val num">—</div><div class="sub">At launch</div></div>
-            <div class="stat"><div class="lbl">Pair assets</div><div class="val num">11</div><div class="sub">SOL · USDC · 9 xStocks</div></div>
-            <div class="stat"><div class="lbl">Fees Paid to Creators</div><div class="val num">—</div><div class="sub">Not tracked yet</div></div>
-            <div class="stat"><div class="lbl">24h Buyback</div><div class="val num">—</div><div class="sub">No buyback program yet</div></div>
+            <div class="stat"><div class="lbl" title="Coins launched on Vector Pad, read live from the bonding-curve program">Listed tokens <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num" id="statListedVal">0</div></div>
+            <div class="stat"><div class="lbl" title="Trading volume across Vector Pad launches in the last 24 hours">24h volume <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num"><span class="dashbar" role="img" aria-label="No data yet"></span></div></div>
+            <div class="stat"><div class="lbl" title="Trades across Vector Pad launches in the last 24 hours">24h transactions <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num"><span class="dashbar" role="img" aria-label="No data yet"></span></div></div>
+            <div class="stat"><div class="lbl" title="Assets a launch can pair with: SOL · USDC · 9 xStocks">Pair assets <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num">11</div></div>
+            <div class="stat"><div class="lbl" title="Bonding-curve fees paid out to token creators">Fees paid to creators <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num"><span class="dashbar" role="img" aria-label="No data yet"></span></div></div>
+            <div class="stat"><div class="lbl" title="Buybacks across Vector Pad launches in the last 24 hours">24h buyback <svg class="info-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div><div class="val num"><span class="dashbar" role="img" aria-label="No data yet"></span></div></div>
+          </div>
+
+          <div class="trending-block" id="trendingBlock">
+            <div class="trend-lbl"><span class="trend-dot"></span>Trending</div>
+            <div class="trend-circles" id="trendCircles"></div>
+            <div class="trend-cap" id="trendCap">Top 5 by market cap</div>
           </div>
         </div>
 
@@ -1103,8 +1121,8 @@
         <div class="controls">
           <span class="ctl-label">Sort by</span>
           <select class="ctl" id="sortSel" aria-label="Sort tokens">
+            <option value="age" selected>Newest first</option>
             <option value="mcap">Market cap</option>
-            <option value="age">Age</option>
             <option value="trades">Trades</option>
             <option value="volume">Volume</option>
             <option value="change">% change</option>
@@ -1154,16 +1172,13 @@
         </button>
 
         <div class="detail-head">
-          <img class="big logo-light" src="assets/logo-black.png" alt="Vector Pad token image" style="object-fit:contain;background:none;box-shadow:none" />
-          <img class="big logo-dark" src="assets/logo-sky.png" alt="Vector Pad token image" style="object-fit:contain;background:none;box-shadow:none" />
+          <img class="big" id="detailImg" src="assets/logo-sky.png" alt="Token image" style="object-fit:contain;background:none;box-shadow:none" />
           <div>
-            <h1>Vector Pad <span class="sym">$VECTOR</span></h1>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
-              <span class="badge soon">● Coming soon</span>
-              <span class="badge">Pump.fun</span>
+            <h1><span id="detailName">Token</span> <span class="sym" id="detailSym"></span></h1>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px" id="detailBadges">
               <span class="badge">Solana</span>
             </div>
-            <p class="note-line" style="margin-top:10px;max-width:540px">CA: <b>not launched yet.</b></p>
+            <p class="note-line" style="margin-top:10px;max-width:540px" id="detailCA">Pick a token from Explore — its page opens here.</p>
           </div>
           <div class="head-actions">
             <button type="button" class="btn btn-ghost watch-btn-lg" id="detailWatchBtn" style="height:40px">
@@ -1174,17 +1189,17 @@
         </div>
 
         <div class="price-line">
-          <span class="price-big">Coming soon</span>
-          <span class="chg-chip" style="background:var(--surface-3);color:var(--muted)">Not launched</span>
+          <span class="price-big" id="detailPrice">—</span>
+          <span class="chg-chip" id="detailChip" style="background:var(--surface-3);color:var(--muted)">No token loaded</span>
         </div>
 
         <div class="detail-stats">
-          <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:19px">Coming soon</div></div>
-          <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px">Pump.fun</div></div>
+          <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:19px" id="dStatStatus">—</div></div>
+          <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px" id="dStatVenue">—</div></div>
           <div class="stat"><div class="lbl">Network</div><div class="val" style="font-size:19px">Solana</div></div>
-          <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px">Not launched</div><div class="sub">At launch</div></div>
-          <div class="stat"><div class="lbl">Price</div><div class="val num">—</div></div>
-          <div class="stat"><div class="lbl">Market cap</div><div class="val num">—</div></div>
+          <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px" id="dStatContract">—</div><div class="sub" id="dStatContractSub">Mint address</div></div>
+          <div class="stat"><div class="lbl">Price</div><div class="val num" id="dStatPrice">—</div></div>
+          <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="dStatMcap">—</div></div>
           <div class="stat"><div class="lbl">Holders</div><div class="val num">—</div></div>
         </div>
 
@@ -1239,11 +1254,12 @@
             </div>
 
             <div class="card">
-              <h3>Launch status</h3>
-              <p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">$VECTOR launches on pump.fun. This page goes live then — price, chart, trading.</p>
+              <h3>Token status</h3>
+              <p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6" id="detailStatusText">Open a token from Explore — this page reads its bonding curve straight from the chain: price, market cap and graduation progress, live.</p>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-                <button type="button" class="btn btn-grad" data-nav="create" style="height:42px">Launch a coin</button>
-                <button type="button" class="btn btn-ghost" data-nav="swap" style="height:42px">Swap</button>
+                <a class="btn btn-grad" id="detailSolscanLink" href="#" target="_blank" rel="noopener" style="height:42px;display:none;align-items:center;padding:0 18px;text-decoration:none">View on Solscan</a>
+                <button type="button" class="btn btn-ghost" data-nav="explore" style="height:42px">Browse tokens</button>
+                <button type="button" class="btn btn-ghost" data-nav="create" style="height:42px">Launch a coin</button>
               </div>
             </div>
 
@@ -1252,11 +1268,11 @@
               <ul class="risk-list">
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg>
-                  <div><b>No official token yet.</b> <span>Anything trading as VECTOR today is fake.</span></div>
+                  <div><b>Names repeat.</b> <span>Any token can copy a name or ticker — the mint address is the identity. Check it before you trade.</span></div>
                 </li>
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                  <div><b>Verify the CA here.</b> <span>Official CA appears on this page at launch — nowhere else first.</span></div>
+                  <div><b>Verify the CA.</b> <span>The contract address at the top of this page is read from the on-chain curve account — trust it over any address sent to you elsewhere.</span></div>
                 </li>
                 <li>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
@@ -1267,28 +1283,27 @@
 
             <div class="card">
               <h3>Trades</h3>
-              <p class="note-line" style="margin:0">Live at launch.</p>
+              <p class="note-line" style="margin:0">Buys and sells happen in the bonding curve panel on this page — priced live off the curve's reserves.</p>
             </div>
 
             <div class="card">
               <h3>Technical details</h3>
               <div class="tech-grid">
-                <div><div class="k">Mint address</div><div class="v">Not launched yet</div></div>
-                <div><div class="k">Network</div><div class="v">Solana mainnet</div></div>
-                <div><div class="k">Venue</div><div class="v">Pump.fun (at launch)</div></div>
-                <div><div class="k">Token standard</div><div class="v">Announced at launch</div></div>
-                <div><div class="k">Total supply</div><div class="v">Announced at launch</div></div>
-                <div><div class="k">Explorer</div><div class="v">Links appear here at launch</div></div>
+                <div><div class="k">Mint address</div><div class="v" id="tdMint" style="word-break:break-all">—</div></div>
+                <div><div class="k">Network</div><div class="v" id="tdNetwork">Solana</div></div>
+                <div><div class="k">Venue</div><div class="v" id="tdVenue">—</div></div>
+                <div><div class="k">Token standard</div><div class="v" id="tdStandard">—</div></div>
+                <div><div class="k">Total supply</div><div class="v" id="tdSupply">—</div></div>
+                <div><div class="k">Explorer</div><div class="v" id="tdExplorer">—</div></div>
               </div>
             </div>
           </div>
 
-          <!-- Trading opens at launch -->
+          <!-- Trade panel -->
           <div class="card trade-panel" style="text-align:center">
-            <img class="logo-light" src="assets/logo-black.png" alt="" style="width:64px;height:64px;object-fit:contain" />
-            <img class="logo-dark" src="assets/logo-sky.png" alt="" style="width:64px;height:64px;object-fit:contain" />
-            <h3 style="font-size:19px;margin-top:8px">Trading opens at launch</h3>
-            <p class="note-line" style="margin:0 0 16px">Live at launch.</p>
+            <img id="tpImg" src="assets/logo-sky.png" alt="" style="width:64px;height:64px;object-fit:contain" />
+            <h3 style="font-size:19px;margin-top:8px" id="tpTitle">No token loaded</h3>
+            <p class="note-line" style="margin:0 0 16px" id="tpText">Pick a token from Explore to open its page.</p>
             <button type="button" class="btn btn-grad" data-nav="swap" style="width:100%;height:46px">Swap</button>
             <button type="button" class="btn btn-ghost" data-nav="stake" style="width:100%;height:46px;margin-top:9px">Stake SOL</button>
           </div>
@@ -1760,6 +1775,7 @@
                   <label class="btn btn-ghost" for="inImage" style="height:38px;font-size:13.5px">Upload image</label>
                   <input type="file" id="inImage" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" />
                   <div class="hint" style="margin-top:8px">PNG · JPG · WEBP · GIF · max 5 MB</div>
+                  <div class="hint" id="imgUpStatus" style="margin-top:4px"></div>
                   <div class="err" id="imgErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:6px"></div>
                 </div>
               </div>
@@ -2670,111 +2686,90 @@
         })
         .catch(function(){ popLoading = false; renderPopularError(); });
     }
-    function loadTicker(){
-      var addrs = STOCKS.map(function(s){ return s.mint; }).join(",");
-      fetchJSON("https://api.dexscreener.com/latest/dex/tokens/"+addrs)
-        .then(function(d){
-          var byMint = {};
-          (d.pairs||[]).forEach(function(p){
-            var m = p.baseToken.address;
-            if(!byMint[m] || ((p.volume&&p.volume.h24)||0) > ((byMint[m].volume&&byMint[m].volume.h24)||0)) byMint[m]=p;
-          });
-          var items = [];
-          function item(sym, p){
-            if(!p) return '<span class="tick-item"><b>'+sym+'</b> —</span>';
-            var chg = p.priceChange && p.priceChange.h24;
-            var cls = chg==null ? "" : (chg>=0 ? "up":"down");
-            return '<span class="tick-item"><b>'+sym+'</b> '+fmtPrice(parseFloat(p.priceUsd))+
-              (chg==null?"":' <span class="'+cls+'">'+fmtPct(chg)+'</span>')+
-              ' <span class="dot"></span></span>';
-          }
-          items.push('<span class="tick-item"><b>VECTOR</b> Coming soon on pump.fun <span class="dot"></span></span>');
-          STOCKS.forEach(function(s){ items.push(item(s.sym, byMint[s.mint])); });
-          var half = items.join("");
-          $("tickerTrack").innerHTML = half + half; // duplicate for seamless loop
-        })
-        .catch(function(){
-          $("tickerTrack").innerHTML = '<span class="tick-item"><b>VECTOR</b> Coming soon on pump.fun</span>';
-        });
+    /* ================= Token detail page + watchlist =================
+       The token page is per-token: it renders whichever launched coin was
+       opened (from Explore, Portfolio, or a fresh launch) — its own name,
+       photo, mint and live curve figures. There is no built-in placeholder
+       token: $VECTOR launches on pump.fun directly, not through this app,
+       so it has no Explore row, detail page or ticker item here. */
+    var detailMint = null;       /* mint whose page is currently shown */
+    var detailEntry = null;      /* exploreCurves entry for detailMint, when known */
+    var watchedMints = {};       /* mint -> true, session-only watchlist */
+    function fmtAge(ts){
+      if(!ts) return "—";
+      var s = Math.max(0, Date.now() / 1000 - ts);
+      if(s < 3600) return Math.max(1, Math.floor(s / 60)) + "m";
+      if(s < 86400) return Math.floor(s / 3600) + "h";
+      return Math.floor(s / 86400) + "d";
     }
-
-    /* ================= Explore board: $VECTOR (coming soon) ================= */
-    var boardRowEl = null, boardCardEl = null;
-    function renderBoard(){
-      /* table row — $VECTOR has not launched, so every market figure is an honest dash */
-      var row = document.createElement("tr");
-      row.setAttribute("tabindex","0");
-      row.setAttribute("aria-label","View Vector Pad token page");
-      row.innerHTML =
-        '<td class="num">1</td>'+
-        '<td><div class="tok-cell"><img class="tok-img logo-light" src="assets/logo-black.png" alt="VECTOR token image" style="object-fit:contain;background:none" />'+
-          '<img class="tok-img logo-dark" src="assets/logo-sky.png" alt="VECTOR token image" style="object-fit:contain;background:none" />'+
-          '<div><div class="tok-name">Vector Pad <span class="badge soon">Coming soon</span></div>'+
-          '<div class="tok-sym">$VECTOR · Not launched yet</div></div></div></td>'+
-        '<td class="dash">—</td>'+
-        '<td class="dash">—</td>'+
-        '<td class="dash">—</td>'+
-        '<td class="dash">—</td>'+
-        '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>'+
-        '<td class="dash">—</td>'+
-        '<td><span class="dash">—</span></td>'+
-        '<td><button type="button" class="watch-btn" aria-label="Watch VECTOR">'+starSVG()+'</button></td>';
-      row.addEventListener("click", function(e){
-        if(e.target.closest(".watch-btn")) return;
-        showView("token");
+    function syncWatchBtns(){
+      document.querySelectorAll(".watch-btn[data-watch-mint]").forEach(function(b){
+        var on = !!watchedMints[b.getAttribute("data-watch-mint")];
+        b.classList.toggle("on", on);
+        var svg = b.querySelector("svg"); if(svg) svg.setAttribute("fill", on ? "currentColor" : "none");
       });
-      row.addEventListener("keydown", function(e){ if(e.key==="Enter") showView("token"); });
-      var wb = row.querySelector(".watch-btn");
-      wb.addEventListener("click", function(){ toggleWatch(wb); });
-      if(state.watched) wb.classList.add("on");
-      $("tokenRows").innerHTML=""; $("tokenRows").appendChild(row);
-      boardRowEl = row;
-
-      /* grid card */
-      var card = el(
-        '<div class="coin-card" tabindex="0" role="button" aria-label="View Vector Pad token page">'+
-          '<div class="cc-head"><img class="logo-light" src="assets/logo-black.png" alt="VECTOR token image" style="object-fit:contain;background:none" />'+
-            '<img class="logo-dark" src="assets/logo-sky.png" alt="VECTOR token image" style="object-fit:contain;background:none" />'+
-            '<div style="flex:1;min-width:0"><div class="cc-name">Vector Pad</div>'+
-            '<div class="cc-meta">$VECTOR · Coming soon · Pump.fun</div>'+
-            '<div style="margin-top:5px"><span class="badge soon">Coming soon</span></div></div>'+
-            '<button type="button" class="watch-btn" aria-label="Watch VECTOR">'+starSVG()+'</button></div>'+
-          '<div class="cc-nums">'+
-            '<div><div class="lbl">Status</div><div class="v small">Coming soon</div></div>'+
-            '<div><div class="lbl">Price</div><div class="v num">—</div></div>'+
-            '<div><div class="lbl">24h vol</div><div class="v small num">—</div></div>'+
-            '<div><div class="lbl">24h trades</div><div class="v small num">—</div></div>'+
-          '</div></div>');
-      card.addEventListener("click", function(e){ if(e.target.closest(".watch-btn")) return; showView("token"); });
-      card.addEventListener("keydown", function(e){ if(e.key==="Enter") showView("token"); });
-      var cwb = card.querySelector(".watch-btn");
-      cwb.addEventListener("click", function(){ toggleWatch(cwb); });
-      if(state.watched) cwb.classList.add("on");
-      $("tokenGrid").innerHTML=""; $("tokenGrid").appendChild(card);
-      boardCardEl = card;
+      var dw = $("detailWatchBtn");
+      if(dw && detailMint){
+        var on2 = !!watchedMints[detailMint];
+        dw.querySelector("svg").setAttribute("fill", on2 ? "#eab308" : "none");
+        dw.querySelector("span").textContent = on2 ? "Watching" : "Watch";
+      }
+    }
+    function toggleWatchMint(mint, sym){
+      if(!mint) return;
+      watchedMints[mint] = !watchedMints[mint];
+      syncWatchBtns();
+      toast(watchedMints[mint] ? "Added $" + (sym || "") + " to your watchlist" : "Removed $" + (sym || "") + " from your watchlist");
+    }
+    function detailStatus(t){
+      if(!t) return { label: "—", venue: "—", chip: "No token loaded" };
+      if(t.migrated) return { label: "Graduated", venue: "Raydium", chip: "Graduated · Raydium pool live" };
+      if(t.complete) return { label: "Curve complete", venue: "Vector Pad curve", chip: "Curve complete · ready to graduate" };
+      return { label: "Bonding curve", venue: "Vector Pad curve", chip: "Trading on the curve" };
+    }
+    function renderDetailHeader(t){
+      if(!t || !t.mint) return;
+      detailEntry = t;
+      var st = detailStatus(t);
+      $("detailName").textContent = t.name || "Unknown token";
+      $("detailSym").textContent = t.sym ? "$" + t.sym : "";
+      $("detailBadges").innerHTML = curveStatusBadge(t) + '<span class="badge">Solana</span>' + (t.creator ? '<span class="badge">Creator ' + truncAddr(t.creator) + '</span>' : "");
+      $("detailCA").innerHTML = 'CA: <b style="word-break:break-all">' + esc(t.mint) + "</b>";
+      [["detailImg"],["tpImg"]].forEach(function(pair){
+        var im = $(pair[0]); if(!im) return;
+        im.setAttribute("data-curve-img", t.mint);
+        im.alt = (t.sym || "Token") + " token image";
+        if(im.getAttribute("data-for") !== t.mint){ im.setAttribute("data-for", t.mint); im.src = curveImgCache[t.mint] || "assets/logo-sky.png"; }
+      });
+      $("tpTitle").textContent = t.name || "Token";
+      $("tpText").textContent = t.migrated ? "Graduated to Raydium — trade it on Swap." : "This token trades on its Vector Pad bonding curve — buy and sell in the curve panel on this page.";
+      $("detailPrice").textContent = t.priceSol != null ? fmtTokens(t.priceSol, 8) + " SOL" : "—";
+      var chip = $("detailChip");
+      chip.textContent = st.chip;
+      chip.style.color = (t.migrated || t.complete) ? "var(--green)" : "var(--muted)";
+      $("dStatStatus").textContent = st.label;
+      $("dStatVenue").textContent = st.venue;
+      $("dStatContract").textContent = truncAddr(t.mint);
+      $("dStatPrice").textContent = t.priceSol != null ? fmtTokens(t.priceSol, 8) + " SOL" : "—";
+      $("dStatMcap").textContent = t.mcapSol != null ? fmtTokens(t.mcapSol, 2) + " SOL" : "—";
+      $("tdMint").textContent = t.mint;
+      $("tdNetwork").textContent = "Solana " + state.network;
+      $("tdVenue").textContent = st.venue;
+      $("tdStandard").textContent = "SPL · Metaplex metadata";
+      $("tdExplorer").innerHTML = '<a href="' + explorerAddr(t.mint) + '" target="_blank" rel="noopener">Solscan</a>';
+      var sl = $("detailSolscanLink");
+      sl.href = explorerAddr(t.mint); sl.style.display = "inline-flex";
+      $("detailStatusText").textContent = t.migrated
+        ? (t.name || "This token") + " filled its bonding curve and graduated — its Raydium pool is live" + (t.poolId ? " (" + truncAddr(t.poolId) + ")" : "") + ". The curve panel below shows the final curve state."
+        : (t.name || "This token") + " trades on its Vector Pad bonding curve. The price on this page comes straight from the curve account on-chain and moves with every buy and sell; at ~85 SOL of net buys the curve completes and anyone can graduate it to a Raydium pool.";
+      syncWatchBtns();
     }
     function starSVG(){
       return '<svg width="17" height="17" viewBox="0 0 24 24" fill="'+ 'none' +'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8L12 3Z"/></svg>';
     }
-    function toggleWatch(btn){
-      state.watched = !state.watched;
-      document.querySelectorAll(".watch-btn").forEach(function(b){
-        b.classList.toggle("on", state.watched);
-        b.querySelector("svg").setAttribute("fill", state.watched ? "currentColor" : "none");
-      });
-      var dw = $("detailWatchBtn");
-      dw.querySelector("svg").setAttribute("fill", state.watched ? "#eab308" : "none");
-      dw.querySelector("span").textContent = state.watched ? "Watching" : "Watch";
-      toast(state.watched ? "Added VECTOR to your watchlist" : "Removed VECTOR from your watchlist");
-    }
     $("detailWatchBtn").addEventListener("click", function(){
-      state.watched = !state.watched;
-      document.querySelectorAll(".watch-btn").forEach(function(b){
-        b.classList.toggle("on", state.watched);
-        b.querySelector("svg").setAttribute("fill", state.watched ? "currentColor" : "none");
-      });
-      this.querySelector("svg").setAttribute("fill", state.watched ? "#eab308" : "none");
-      this.querySelector("span").textContent = state.watched ? "Watching" : "Watch";
+      if(!detailMint){ toast("Open a token first — then you can watch it."); return; }
+      toggleWatchMint(detailMint, detailEntry ? detailEntry.sym : "");
     });
 
     /* ================= Explore: bonding curves, read live from the program =================
@@ -2814,11 +2809,15 @@
       if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(uri)) return uri;
       return fetch(uri).then(function(r){ return r.json(); }).then(function(j){ return (j && (j.image || j.image_url)) || null; }).catch(function(){ return null; });
     }
+    var curveImgCache = {}; /* mint -> resolved image URL, so re-renders keep the photo */
     function setCurveImg(mint, url){
+      if(!url) return;
+      curveImgCache[mint] = url;
       var probe = new Image();
       probe.onload = function(){
         document.querySelectorAll('img[data-curve-img="' + mint + '"]').forEach(function(im){ im.src = url; });
       };
+      probe.onerror = function(){ if(curveImgCache[mint] === url) delete curveImgCache[mint]; };
       probe.src = url;
     }
     /* getProgramAccounts is where the old scan died in real browsers: the
@@ -2875,43 +2874,76 @@
        recent transactions, pick out the create_curve instructions
        (accounts[1] is the Curve PDA), and read those Curve accounts
        directly. Verified against mainnet: this finds the TEST launch. */
+    /* Creation time per Curve PDA (unix seconds), learned from the
+       create_curve transaction's blockTime — the Curve account itself
+       carries no timestamp, and this map is what lets Explore sort
+       newest-first and show each token's age. */
+    var curveTimes = {};
+    var curveTimesNet = null;
+    async function scanCreateCurveTxs(){
+      var sj = await rpc("getSignaturesForAddress", [BONDING_CURVE_PROGRAM_ID, { limit: 100 }]).catch(function(){ return null; });
+      if(!sj || sj.error || !Array.isArray(sj.result)) return null;
+      var sigs = sj.result.filter(function(s){ return !s.err; }).slice(0, 60);
+      var curvePdas = {}, times = {};
+      for(var i = 0; i < sigs.length; i++){
+        var tj = await rpc("getTransaction", [sigs[i].signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" }]).catch(function(){ return null; });
+        var res = tj && tj.result;
+        if(!res || !res.transaction || !res.transaction.message) continue;
+        var keys = (res.transaction.message.accountKeys || []).slice();
+        if(res.meta && res.meta.loadedAddresses) keys = keys.concat(res.meta.loadedAddresses.writable || [], res.meta.loadedAddresses.readonly || []);
+        var groups = [res.transaction.message.instructions || []];
+        ((res.meta && res.meta.innerInstructions) || []).forEach(function(g){ groups.push(g.instructions || []); });
+        groups.forEach(function(ixs){
+          ixs.forEach(function(ix){
+            var pid = ix.programId || keys[ix.programIdIndex];
+            if(pid !== BONDING_CURVE_PROGRAM_ID || !ix.accounts || ix.accounts.length < 3) return;
+            var data = b58DecodeBytes(ix.data || "");
+            if(!data || data.length < 8) return;
+            var disc = "";
+            for(var b = 0; b < 8; b++) disc += ("0" + data[b].toString(16)).slice(-2);
+            if(disc !== BC_DISC.create_curve) return;
+            var curve = keys[ix.accounts[1]];
+            if(curve){ curvePdas[curve] = true; if(sigs[i].blockTime && !times[curve]) times[curve] = sigs[i].blockTime; }
+          });
+        });
+      }
+      return { pdas: Object.keys(curvePdas), times: times };
+    }
     async function fetchCurvesViaSignatures(){
       try {
-        var sj = await rpc("getSignaturesForAddress", [BONDING_CURVE_PROGRAM_ID, { limit: 100 }]).catch(function(){ return null; });
-        if(!sj || sj.error || !Array.isArray(sj.result)) return null;
-        var sigs = sj.result.filter(function(s){ return !s.err; }).slice(0, 60);
-        var curvePdas = {};
-        for(var i = 0; i < sigs.length; i++){
-          var tj = await rpc("getTransaction", [sigs[i].signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" }]).catch(function(){ return null; });
-          var res = tj && tj.result;
-          if(!res || !res.transaction || !res.transaction.message) continue;
-          var keys = (res.transaction.message.accountKeys || []).slice();
-          if(res.meta && res.meta.loadedAddresses) keys = keys.concat(res.meta.loadedAddresses.writable || [], res.meta.loadedAddresses.readonly || []);
-          var groups = [res.transaction.message.instructions || []];
-          ((res.meta && res.meta.innerInstructions) || []).forEach(function(g){ groups.push(g.instructions || []); });
-          groups.forEach(function(ixs){
-            ixs.forEach(function(ix){
-              var pid = ix.programId || keys[ix.programIdIndex];
-              if(pid !== BONDING_CURVE_PROGRAM_ID || !ix.accounts || ix.accounts.length < 3) return;
-              var data = b58DecodeBytes(ix.data || "");
-              if(!data || data.length < 8) return;
-              var disc = "";
-              for(var b = 0; b < 8; b++) disc += ("0" + data[b].toString(16)).slice(-2);
-              if(disc !== BC_DISC.create_curve) return;
-              var curve = keys[ix.accounts[1]];
-              if(curve) curvePdas[curve] = true;
-            });
-          });
-        }
-        var pdas = Object.keys(curvePdas);
+        var scan = await scanCreateCurveTxs();
+        if(!scan) return null;
+        Object.keys(scan.times).forEach(function(k){ curveTimes[k] = scan.times[k]; });
+        curveTimesNet = state.network;
         var out = [];
-        for(var j = 0; j < pdas.length; j++){
-          var aj = await rpc("getAccountInfo", [pdas[j], { encoding: "base64" }]).catch(function(){ return null; });
+        for(var j = 0; j < scan.pdas.length; j++){
+          var aj = await rpc("getAccountInfo", [scan.pdas[j], { encoding: "base64" }]).catch(function(){ return null; });
           var val = aj && aj.result && aj.result.value;
-          if(val && val.data && val.data[0]) out.push({ pubkey: pdas[j], account: { data: val.data } });
+          if(val && val.data && val.data[0]) out.push({ pubkey: scan.pdas[j], account: { data: val.data } });
         }
         return out;
       } catch(e){ return null; }
+    }
+    /* When the list came from getProgramAccounts, creation times are still
+       unknown — fetch them in the background (same signature walk) and
+       re-render so the board settles into newest-first with real ages. */
+    var curveTimesBusy = false;
+    async function applyCurveTimes(){
+      if(curveTimesBusy || curveTimesNet === state.network) return;
+      if(!exploreCurves.some(function(t){ return !t.createdAt; })) { curveTimesNet = state.network; return; }
+      curveTimesBusy = true;
+      var net = state.network;
+      try {
+        var scan = await scanCreateCurveTxs();
+        if(scan && net === state.network){
+          Object.keys(scan.times).forEach(function(k){ curveTimes[k] = scan.times[k]; });
+          curveTimesNet = net;
+          var changed = false;
+          exploreCurves.forEach(function(t){ var ts = curveTimes[t.curve]; if(ts && t.createdAt !== ts){ t.createdAt = ts; changed = true; } });
+          if(changed && exploreCurvesNet === net) renderCurveRows();
+        }
+      } catch(e){ /* ages stay as dashes — ordering falls back to scan order */ }
+      curveTimesBusy = false;
     }
     async function fetchCurveAccounts(){
       var viaGpa = await fetchProgramAccountsChain();
@@ -2971,12 +3003,14 @@
             mcapSol: Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9,
             solIn: Number(c.realSol) / 1e9,
             progress: Math.min(100, Number(c.realSol) * 100 / Number(BC_GRAD_SOL)),
-            complete: c.complete, migrated: c.migrated
+            complete: c.complete, migrated: c.migrated,
+            createdAt: curveTimes[c.curveStr] || 0
           };
         });
         exploreCurvesNet = state.network;
         renderCurveRows();
         renderLaunched();
+        applyCurveTimes();
         exploreCurves.forEach(function(t){
           var img = bcMetaImage(t.uri);
           if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
@@ -2995,6 +3029,18 @@
       return '<span class="badge">Bonding curve</span>';
     }
     function openCurveToken(mint){
+      detailMint = mint;
+      var t = exploreCurves.filter(function(x){ return x.mint === mint; })[0] || null;
+      if(t){
+        renderDetailHeader(t);
+        /* The token's own photo lives in its metadata JSON — resolve it
+           onto every img tagged with this mint (list, grid, this page). */
+        var img = bcMetaImage(t.uri);
+        if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
+        else if(img) setCurveImg(t.mint, img);
+      } else {
+        renderDetailHeader({ mint: mint, name: "Token", sym: truncAddr(mint), uri: "", priceSol: null, mcapSol: null, complete: false, migrated: false, poolId: null, creator: null });
+      }
       $("bcMintInput").value = mint;
       showView("token");
       loadBcCurve(mint);
@@ -3002,7 +3048,14 @@
     function renderCurveRows(){
       document.querySelectorAll(".curve-row,.curve-card").forEach(function(n){ n.remove(); });
       var list = exploreCurves.slice();
-      if($("sortSel").value !== "age") list.sort(function(a, b){ return b.mcapSol - a.mcapSol; });
+      var sortMode = $("sortSel").value;
+      if(sortMode === "age"){
+        /* Newest first — the default view. Tokens whose creation time is
+           not known yet keep their scan order behind the dated ones. */
+        list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      } else {
+        list.sort(function(a, b){ return b.mcapSol - a.mcapSol; });
+      }
       var tbody = $("tokenRows"), grid = $("tokenGrid");
       list.forEach(function(t, i){
         var row = document.createElement("tr");
@@ -3011,34 +3064,30 @@
         row.setAttribute("data-mint", t.mint);
         row.setAttribute("aria-label", "View " + t.name + " token page");
         row.innerHTML =
-          '<td class="num">' + (i + 2) + '</td>' +
-          '<td><div class="tok-cell"><img class="tok-img" data-curve-img="' + t.mint + '" src="assets/logo-sky.png" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
+          '<td class="num">' + (i + 1) + '</td>' +
+          '<td><div class="tok-cell"><img class="tok-img" data-curve-img="' + t.mint + '" src="' + esc(curveImgCache[t.mint] || "assets/logo-sky.png") + '" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
             '<div><div class="tok-name">' + esc(t.name) + ' ' + curveStatusBadge(t) + '</div>' +
             '<div class="tok-sym">$' + esc(t.sym) + ' · ' + truncAddr(t.mint) + '</div></div></div></td>' +
-          '<td class="dash">—</td>' +
+          '<td class="num">' + fmtAge(t.createdAt) + '</td>' +
           '<td class="num">' + fmtTokens(t.mcapSol, 2) + ' SOL</td>' +
           '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>' +
           '<td class="num">1%</td>' +
           '<td>Creator</td>' +
           '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>' +
           '<td><span class="num">' + t.progress.toFixed(1) + '%</span> <span class="dash">to graduation</span></td>' +
-          '<td><button type="button" class="watch-btn" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></td>';
+          '<td><button type="button" class="watch-btn" data-watch-mint="' + t.mint + '" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></td>';
         row.addEventListener("click", function(e){ if(e.target.closest(".watch-btn")) return; openCurveToken(t.mint); });
         row.addEventListener("keydown", function(e){ if(e.key === "Enter") openCurveToken(t.mint); });
-        var wb = row.querySelector(".watch-btn");
-        wb.addEventListener("click", function(){
-          wb.classList.toggle("on");
-          wb.querySelector("svg").setAttribute("fill", wb.classList.contains("on") ? "currentColor" : "none");
-        });
+        row.querySelector(".watch-btn").addEventListener("click", function(){ toggleWatchMint(t.mint, t.sym); });
         tbody.appendChild(row);
 
         var card = el(
           '<div class="coin-card curve-card" data-mint="' + t.mint + '" tabindex="0" role="button" aria-label="View ' + esc(t.name) + ' token page">' +
-            '<div class="cc-head"><img data-curve-img="' + t.mint + '" src="assets/logo-sky.png" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
+            '<div class="cc-head"><img data-curve-img="' + t.mint + '" src="' + esc(curveImgCache[t.mint] || "assets/logo-sky.png") + '" alt="' + esc(t.sym) + ' token image" style="object-fit:contain;background:none" />' +
               '<div style="flex:1;min-width:0"><div class="cc-name">' + esc(t.name) + '</div>' +
               '<div class="cc-meta">$' + esc(t.sym) + ' · ' + (t.migrated ? "Graduated · Raydium" : "Bonding curve") + '</div>' +
               '<div style="margin-top:5px">' + curveStatusBadge(t) + '</div></div>' +
-              '<button type="button" class="watch-btn" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></div>' +
+              '<button type="button" class="watch-btn" data-watch-mint="' + t.mint + '" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></div>' +
             '<div class="cc-nums">' +
               '<div><div class="lbl">Price</div><div class="v num">' + fmtTokens(t.priceSol, 8) + ' SOL</div></div>' +
               '<div><div class="lbl">Market cap</div><div class="v num">' + fmtTokens(t.mcapSol, 2) + ' SOL</div></div>' +
@@ -3047,17 +3096,49 @@
             '</div></div>');
         card.addEventListener("click", function(e){ if(e.target.closest(".watch-btn")) return; openCurveToken(t.mint); });
         card.addEventListener("keydown", function(e){ if(e.key === "Enter") openCurveToken(t.mint); });
-        var cwb = card.querySelector(".watch-btn");
-        cwb.addEventListener("click", function(){
-          cwb.classList.toggle("on");
-          cwb.querySelector("svg").setAttribute("fill", cwb.classList.contains("on") ? "currentColor" : "none");
-        });
+        card.querySelector(".watch-btn").addEventListener("click", function(){ toggleWatchMint(t.mint, t.sym); });
         grid.appendChild(card);
       });
-      var lv = $("statListedVal"), ls = $("statListedSub");
-      if(lv) lv.textContent = String(1 + exploreCurves.length);
-      if(ls) ls.textContent = exploreCurves.length ? "$VECTOR · soon · " + exploreCurves.length + " on curve" : "$VECTOR · soon";
+      /* Listed tokens counts real on-chain launches only — no placeholder. */
+      var lv = $("statListedVal");
+      if(lv) lv.textContent = String(exploreCurves.length);
+      syncWatchBtns();
+      renderTrending();
       applyFilters();
+    }
+    /* Trending block in the Explore header: the top launches by market
+       cap (the ranking the curve accounts actually carry — they record no
+       24h volume, so the caption says market cap rather than faking a
+       volume rank). Circles use each token's own metadata photo, star
+       placeholder when it has none; one token shows one circle, and with
+       no launches at all an honest empty state shows instead. */
+    function renderTrending(){
+      var box = $("trendCircles"), cap = $("trendCap");
+      if(!box || !cap) return;
+      var top = exploreCurves.slice().sort(function(a, b){ return b.mcapSol - a.mcapSol; }).slice(0, 5);
+      box.innerHTML = "";
+      if(!top.length){
+        box.innerHTML = '<span class="tc tc-empty"><img src="assets/logo-sky.png" alt="" /></span>';
+        cap.textContent = exploreScanFailed ? "Couldn't load launches" : "No launches yet";
+        return;
+      }
+      cap.textContent = top.length > 1 ? "Top " + top.length + " by market cap" : "Top by market cap";
+      /* Fan layout: #1 sits largest in the middle, the rest alternate out
+         to the sides, smaller and further back. */
+      var disp = [top[0]];
+      for(var i = 1; i < top.length; i++){ if(i % 2) disp.push(top[i]); else disp.unshift(top[i]); }
+      disp.forEach(function(t){
+        var rank = top.indexOf(t);
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "tc rank" + (rank + 1);
+        b.style.zIndex = String(10 - rank);
+        b.setAttribute("aria-label", "Open " + t.name + " token page");
+        b.title = t.name + " · $" + t.sym;
+        b.innerHTML = '<img data-curve-img="' + t.mint + '" src="' + esc(curveImgCache[t.mint] || "assets/logo-sky.png") + '" alt="" />';
+        b.addEventListener("click", function(){ openCurveToken(t.mint); });
+        box.appendChild(b);
+      });
     }
 
     /* ================= Explore controls ================= */
@@ -3075,9 +3156,6 @@
     function applyFilters(){
       var q = ($("searchInput").value||"").trim().toLowerCase();
       var tabOk = (state.tab==="all" || state.tab==="new");
-      var vectorMatch = tabOk && (!q || "vector pad vector".indexOf(q) > -1);
-      if(boardRowEl) boardRowEl.style.display = vectorMatch ? "" : "none";
-      if(boardCardEl) boardCardEl.style.display = vectorMatch ? "" : "none";
       var curveVisible = 0;
       document.querySelectorAll(".curve-row").forEach(function(r){
         var t = exploreCurves.filter(function(x){ return x.mint === r.getAttribute("data-mint"); })[0];
@@ -3089,29 +3167,37 @@
         var t = exploreCurves.filter(function(x){ return x.mint === cd.getAttribute("data-mint"); })[0];
         cd.style.display = curveMatches(t, tabOk, q) ? "" : "none";
       });
-      var any = vectorMatch || curveVisible > 0;
+      var any = curveVisible > 0;
       $("tableWrap").style.display = (any && state.viewMode==="table") ? "" : "none";
       $("gridWrap").style.display = (any && state.viewMode==="grid") ? "block" : "none";
       var emp = $("exploreEmpty");
       var retryBtn = $("exploreRetryBtn");
       if(retryBtn) retryBtn.style.display = "none";
-      if(!any){
+      if(any){
+        emp.style.display="none";
+      } else if(q){
         emp.style.display="block";
-        if(q){ $("emptyTitle").textContent = "No tokens match “"+$("searchInput").value.trim()+"”"; $("emptyText").textContent = "Try another name, ticker or mint address."; }
-        else { $("emptyTitle").textContent = "Nothing here yet"; $("emptyText").textContent = "No listed token carries this badge yet. Launch a coin with these features and it will show up under this tab."; }
-      } else if(exploreScanFailed && !exploreCurves.length){
+        $("emptyTitle").textContent = "No tokens match “"+$("searchInput").value.trim()+"”";
+        $("emptyText").textContent = "Try another name, ticker or mint address.";
+      } else if(exploreScanFailed){
         /* The scan never got an answer — say so instead of claiming the
            launchpad is empty. */
         emp.style.display="block";
         $("emptyTitle").textContent = "Couldn't read launches from the chain";
         $("emptyText").textContent = "The on-chain scan didn't answer, so coins launched on Vector Pad may be missing from this list right now. It retries on its own — or retry now.";
         if(retryBtn) retryBtn.style.display = "";
-      } else if(curveVisible === 0){
+      } else if(exploreCurvesNet !== state.network){
         emp.style.display="block";
-        $("emptyTitle").textContent = "No other tokens yet — be the first to launch";
-        $("emptyText").textContent = "Vector Pad just opened its doors on Solana. Launch the next coin, pair it with SOL, USDC, or a tokenized stock like NVDAx or TSLAx, and it will trade here.";
+        $("emptyTitle").textContent = "Reading launches from the chain…";
+        $("emptyText").textContent = "One moment — scanning the Vector Pad program for coins launched so far.";
+      } else if(!tabOk){
+        emp.style.display="block";
+        $("emptyTitle").textContent = "Nothing here yet";
+        $("emptyText").textContent = "No listed token carries this badge yet. Launch a coin with these features and it will show up under this tab.";
       } else {
-        emp.style.display="none";
+        emp.style.display="block";
+        $("emptyTitle").textContent = "Be the first to launch";
+        $("emptyText").textContent = "No coins have launched on Vector Pad yet. Launch the first one — it trades here, on its bonding curve.";
       }
     }
     $("searchInput").addEventListener("input", applyFilters);
@@ -3152,7 +3238,7 @@
       buildValidatorOptions();
       syncNetworkUI();
       state.bondingLive = null; state.bondingLiveNet = null; state.bc = null;
-      exploreCurves = []; exploreCurvesNet = null; exploreScanFailed = false; exploreScanAttempts = 0; renderCurveRows(); loadExploreCurves();
+      exploreCurves = []; exploreCurvesNet = null; exploreScanFailed = false; exploreScanAttempts = 0; curveTimes = {}; curveTimesNet = null; renderCurveRows(); loadExploreCurves();
       refreshBondingProgramState();
       if(state.wallet) loadBalances();
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
@@ -4481,14 +4567,24 @@
       updateInitBuyUI();
     });
     $("inDesc").addEventListener("input", function(){ $("descCount").textContent = this.value.length; });
+    /* The chosen image File + its data URL live here until launch — the
+       bonding deploy uploads them and puts the hosted metadata URL
+       on-chain (see uploadTokenMetadata near the bonding transactions). */
+    var wizImageFile = null, wizImageDataUrl = "", wizMetaKey = "", wizMetaUriCache = "";
     $("inImage").addEventListener("change", function(){
       var f = this.files && this.files[0];
       $("imgErr").textContent = "";
+      wizImageFile = null; wizImageDataUrl = ""; wizMetaKey = ""; wizMetaUriCache = "";
+      $("imgUpStatus").textContent = "";
       if(!f) return;
-      if(f.size > 5*1024*1024){ $("imgErr").textContent = "That image is over 5 MB — pick a smaller one."; this.value=""; return; }
+      if(!/^image\/(png|jpeg|webp|gif)$/.test(f.type || "")){ $("imgErr").textContent = "That file isn't a PNG, JPG, WebP or GIF."; this.value = ""; return; }
+      if(f.size > 5*1024*1024){ $("imgErr").textContent = "That image is over 5 MB — pick a smaller one."; this.value = ""; return; }
+      wizImageFile = f;
       var rd = new FileReader();
       rd.onload = function(){
+        wizImageDataUrl = String(rd.result || "");
         $("uploadPreview").innerHTML = '<img src="'+rd.result+'" alt="Token image preview" />';
+        $("imgUpStatus").textContent = "Ready — at launch it uploads with the token metadata, and the hosted link goes on-chain as the token's metadata URI.";
       };
       rd.readAsDataURL(f);
     });
@@ -4614,6 +4710,7 @@
         h += reviewRow("Virtual reserves", "30 SOL / 1.073B");
         h += reviewRow("Graduation", "~85 SOL → Raydium");
         h += reviewRow("Curve fee", "1%");
+        h += reviewRow("Token image", wizImageFile ? "Uploaded at launch — hosted link goes on-chain" : "None — the Vector Pad star shows instead");
         h += reviewRow("Protocol wallet", BONDING_PROTOCOL_WALLET, true);
         var ibS = getInitBuySol(), ibQ = getInitBuyQuote();
         if(ibS > 0 && ibQ && !ibQ.error){
@@ -5117,6 +5214,74 @@
     }
     function bcKey(w3, pubkey, isSigner, isWritable){ return { pubkey: pubkey, isSigner: !!isSigner, isWritable: !!isWritable }; }
 
+    /* ================= Token image + metadata upload =================
+       A bonding-curve launch carries only a metadata URI on-chain, so at
+       launch time the wizard's image and a Metaplex-style metadata JSON
+       (name, symbol, description, image, links) are uploaded from the
+       browser and the JSON's hosted URL becomes the create_curve uri.
+       Host: catbox.moe — anonymous uploads, no account or API key, files
+       permanent, and its API answers browser CORS requests.
+       Fallback when the host can't be reached: a data-URI metadata JSON —
+       but only when it fits. Metaplex caps the on-chain URI at 200
+       characters, so a data URI with an embedded image (thousands of
+       chars even for a tiny picture) would make the metadata CPI fail and
+       take the whole create down with it; in that case the launch goes
+       ahead with no URI and the status box says the photo didn't make it,
+       rather than sending a transaction that cannot succeed. Text-only
+       metadata (short description, no image) does fit and uses the data
+       URI, so the description still lands on-chain. Results are cached
+       per form state, so a retry after a rejected signature reuses the
+       same upload instead of posting duplicates. */
+    function wizMetaKeyNow(){
+      return [$("inName").value.trim(), $("inTicker").value.trim(), $("inDesc").value.trim(), $("inWebsite").value.trim(), $("inX").value.trim(), $("inTelegram").value.trim(), wizImageFile ? (wizImageFile.name + ":" + wizImageFile.size) : "noimg"].join("|");
+    }
+    async function catboxUpload(blob, filename){
+      var fd = new FormData();
+      fd.append("reqtype", "fileupload");
+      fd.append("fileToUpload", blob, filename);
+      var r = await fetch("https://catbox.moe/user/api.php", { method: "POST", body: fd });
+      var t = (await r.text()).trim();
+      if(!r.ok || !/^https:\/\/files\.catbox\.moe\//.test(t)) throw new Error("host answered: " + (t || ("HTTP " + r.status)));
+      return t;
+    }
+    function dataUriFor(meta){
+      try { return "data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(meta)))); }
+      catch(e){ return ""; }
+    }
+    async function uploadTokenMetadata(box){
+      var key = wizMetaKeyNow();
+      if(wizMetaUriCache && wizMetaKey === key) return wizMetaUriCache;
+      var meta = { name: $("inName").value.trim(), symbol: $("inTicker").value.trim(), description: $("inDesc").value.trim() };
+      var web = $("inWebsite").value.trim(); if(web) meta.external_url = web;
+      var xv = $("inX").value.trim(), tg = $("inTelegram").value.trim();
+      var ext = {}; if(xv) ext.twitter = xv; if(tg) ext.telegram = tg;
+      if(Object.keys(ext).length) meta.extensions = ext;
+      var uri = "";
+      if(wizImageFile){
+        try {
+          statusLine(box, "Uploading token image…", "mut");
+          meta.image = await catboxUpload(wizImageFile, wizImageFile.name || "token-image");
+          statusLine(box, "Image hosted: " + meta.image, "mut");
+          statusLine(box, "Uploading token metadata…", "mut");
+          uri = await catboxUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
+          statusLine(box, '<span class="st-ok">Metadata live:</span> ' + uri);
+        } catch(e){
+          statusLine(box, '<span class="st-err">Image host unreachable (' + esc(shortErr(e)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all.');
+          uri = "";
+        }
+      } else if(meta.description || meta.external_url || meta.extensions){
+        try {
+          uri = await catboxUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
+          statusLine(box, '<span class="st-ok">Metadata live:</span> ' + uri);
+        } catch(e){
+          var du = dataUriFor(meta);
+          if(du && du.length <= 200){ uri = du; statusLine(box, "Metadata host unreachable — using a short embedded data URI for the text metadata instead.", "mut"); }
+        }
+      }
+      wizMetaKey = key; wizMetaUriCache = uri;
+      return uri;
+    }
+
     async function runBondingDeploy(){
       if(state.deploying) return;
       var S = stack();
@@ -5124,7 +5289,7 @@
       var w3 = S.web3, spl = S.splToken;
       var net = NETWORKS[state.network];
       var tick = $("inTicker").value.trim(), name = $("inName").value.trim();
-      var uri = $("inWebsite").value.trim() || "";
+      var uri = ""; /* filled by uploadTokenMetadata below — the wizard's image + metadata JSON, hosted */
       var conn = getConnection();
       var owner = new w3.PublicKey(state.wallet.pubkey);
       var box = $("deployStatus"), btn = $("deployBtn");
@@ -5137,6 +5302,10 @@
           toast("Program not deployed — nothing sent.");
           return;
         }
+        /* Image + metadata go up first: the hosted metadata URL is the
+           uri argument of create_curve, so it has to exist before the
+           transaction is built. */
+        uri = await uploadTokenMetadata(box);
         var ibSol = getInitBuySol(), ibQuote = getInitBuyQuote();
         if(ibSol > 0 && (!ibQuote || ibQuote.error)) throw new Error("Initial buy needs fixing (Step 2): " + (ibQuote ? ibQuote.error : "invalid amount"));
         var needLamports = 20000000 + (ibQuote ? Number(ibQuote.lamports) : 0);
@@ -5237,10 +5406,49 @@
       if(!c){ $("bcLoadHint").textContent = "Not a readable Curve account."; return; }
       c.mintStr = mintPk.toBase58(); c.curveStr = curvePda.toBase58();
       state.bc = c;
+      detailMint = c.mintStr;
       $("bcBody").style.display = "";
       $("bcLoadHint").textContent = "Live from chain.";
       renderBcPanel();
       refreshBondingProgramState();
+      loadDetailMeta(mintPk, c);
+    }
+    /* Fill the token page header from the mint's own on-chain metadata —
+       name, symbol, photo and total supply — so the page shows the token
+       that was actually opened, whoever launched it and whenever. Runs
+       after the curve loads; the Explore entry (when known) paints the
+       header instantly and this refreshes it from the chain. */
+    async function loadDetailMeta(mintPk, c){
+      var mintStr = mintPk.toBase58();
+      try {
+        var conn = getConnection();
+        var w3 = stack().web3;
+        var metaInfo = await conn.getAccountInfo(bcMetadataPda(w3, mintPk), "confirmed").catch(function(){ return null; });
+        if(detailMint !== mintStr) return;
+        var meta = metaInfo ? bcParseMetadata(metaInfo.data) : null;
+        var known = exploreCurves.filter(function(x){ return x.mint === mintStr; })[0];
+        var entry = {
+          mint: mintStr,
+          name: (meta && meta.name) || (known && known.name) || "Unknown token",
+          sym: (meta && meta.sym) || (known && known.sym) || truncAddr(mintStr),
+          uri: (meta && meta.uri) || (known && known.uri) || "",
+          creator: c.creator, poolId: c.poolId,
+          complete: c.complete, migrated: c.migrated,
+          priceSol: Number(bcSpotLamports(c.vsol, c.vtok)) / 1e9,
+          mcapSol: Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9
+        };
+        renderDetailHeader(entry);
+        var img = bcMetaImage(entry.uri);
+        if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(mintStr, u); });
+        else if(img) setCurveImg(mintStr, img);
+        var mintInfo = await conn.getAccountInfo(mintPk, "confirmed").catch(function(){ return null; });
+        if(detailMint !== mintStr || !mintInfo || mintInfo.data.length < 45) return;
+        var dv = new DataView(mintInfo.data.buffer, mintInfo.data.byteOffset, mintInfo.data.byteLength);
+        var supply = dv.getBigUint64(36, true);
+        var decimals = mintInfo.data[44];
+        $("tdSupply").textContent = fmtTokens(Number(supply) / Math.pow(10, decimals), 0);
+        $("tdStandard").textContent = mintInfo.owner && mintInfo.owner.toBase58() === "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" ? "Token-2022 · Metaplex metadata" : "SPL · Metaplex metadata";
+      } catch(e){ /* header keeps the Explore entry's values */ }
     }
     function renderBcPanel(){
       var c = state.bc; if(!c) return;
@@ -5269,6 +5477,20 @@
       $("bcMigratedNote").style.display = c.migrated ? "" : "none";
       if(c.migrated && c.poolId) $("bcPoolId").textContent = c.poolId;
       if(c.migrated && !state.tokenPools[c.mintStr + ":" + state.network]) state.tokenPools[c.mintStr + ":" + state.network] = c.poolId;
+      /* Keep the page header in step with the freshly read curve. */
+      if(detailMint === c.mintStr){
+        var priceTxt = fmtTokens(Number(priceLamports) / 1e9, 8) + " SOL";
+        $("detailPrice").textContent = priceTxt;
+        $("dStatPrice").textContent = priceTxt;
+        $("dStatMcap").textContent = fmtTokens(mcapSol, 2) + " SOL";
+        var dst = detailStatus(c);
+        $("dStatStatus").textContent = dst.label;
+        $("dStatVenue").textContent = dst.venue;
+        var dchip = $("detailChip");
+        dchip.textContent = dst.chip;
+        dchip.style.color = (c.migrated || c.complete) ? "var(--green)" : "var(--muted)";
+        if(detailEntry && detailEntry.mint === c.mintStr){ detailEntry.priceSol = Number(priceLamports) / 1e9; detailEntry.mcapSol = mcapSol; detailEntry.complete = c.complete; detailEntry.migrated = c.migrated; }
+      }
       updateBcQuote();
       updateBcTradeBtn();
     }
@@ -6182,13 +6404,11 @@
 
     /* ================= Boot ================= */
     renderSwapTokens();
-    renderBoard();
+    renderCurveRows();
     loadExploreCurves();
     syncNetworkUI();
-    loadTicker();
     loadPopular();
     loadLiveBar();
-    setInterval(loadTicker, 120000);
     setInterval(loadLiveBar, 180000);
     updateActionBtn();
     updateBalText();
