@@ -186,6 +186,9 @@
       .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
       .seg button{border:0;background:none;border-radius:8px;padding:0 12px;height:32px;font-weight:600;font-size:13.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
       .seg button.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+      .devnet-banner{border:1px solid var(--border);background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.55;margin-bottom:12px}
+      .devnet-banner a{font-weight:700}
+      @media (max-width:700px){ #netToggle button{padding:0 8px;font-size:12px;height:28px} }
 
       /* ---------- Token table ---------- */
       .table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
@@ -955,6 +958,10 @@
           <svg id="themeIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         </button>
         <button type="button" class="btn btn-grad header-launch" data-nav="create">Launch a coin</button>
+        <span class="seg" id="netToggle" role="group" aria-label="Solana network">
+          <button type="button" id="netMainBtn" class="active">Mainnet</button>
+          <button type="button" id="netDevBtn">Devnet</button>
+        </span>
         <span class="wallet-anchor">
           <button type="button" class="btn btn-black" id="walletBtn">Connect wallet</button>
           <span class="wallet-pop" id="walletPop" style="display:none">
@@ -1758,6 +1765,7 @@
               <div class="hint" style="margin:0">Check everything below — this is exactly what gets deployed on Solana.</div>
             </div>
             <div id="reviewBox"></div>
+            <div class="devnet-banner" id="devnetBanner" style="display:none"><b>Devnet mode — practice money.</b> This launch runs on Solana devnet: the SOL is free test SOL with no real value, and the pool lives on devnet only. Get devnet SOL from the <a href="https://faucet.solana.com" target="_blank" rel="noopener">Solana faucet</a> (paste your wallet address, choose Devnet), then deploy here exactly like a real launch. Switch back to Mainnet in the header when you are ready for the real thing.</div>
             <button type="button" class="btn btn-grad deploy-btn" id="deployBtn">Connect wallet to deploy</button>
             <div class="tx-status" id="deployStatus"></div>
             <p class="note-line" id="deployNote">Deployment runs two transactions from your wallet: (1) create the Token-2022 mint, mint the full 1B supply to you, and revoke the mint authority; (2) open the Raydium CPMM pool with your seed liquidity (pool creation costs ~0.19 SOL). Every transaction is simulated first — if simulation fails, nothing is sent. LP tokens go to your wallet and are <b>not</b> auto-locked.</p>
@@ -1848,8 +1856,8 @@
               <h2>Getting started</h2>
               <h3>1. Connect a wallet</h3>
               <p>Click <b>Connect wallet</b> in the header and choose <b>Phantom</b> or <b>Solflare</b>. Your wallet connects read-first: the app can show your address and balances, but it can never move anything without a signature from you. Browsing — the board, token pages, quotes — never needs a wallet at all.</p>
-              <h3>2. Mainnet only</h3>
-              <p>Vector Pad runs on <b>Solana mainnet</b> — there is no test network and no network switcher. Everything in the app (balances, pools, stake accounts) uses real funds on mainnet, and every transaction is simulated before you sign.</p>
+              <h3>2. Mainnet by default — devnet for practice</h3>
+              <p>Vector Pad runs on <b>Solana mainnet</b> by default: real funds, real pools. The <b>Mainnet / Devnet switch in the header</b> flips the whole app to Solana devnet, where SOL is free from the faucet and nothing has real value — use it to rehearse a complete token launch (mint + Raydium pool) before spending real SOL. Your wallet keeps the same address on both networks; balances and pools are separate per network, and on devnet you can pair with SOL or devnet USDC only. Every transaction is simulated before you sign, on both networks.</p>
               <h3>3. That's it — no account</h3>
               <p>There is <b>no sign-up, no email, no password</b>. Your wallet address is your identity here, and disconnecting from the wallet menu in the header ends the session. Nothing about you is stored by this app.</p>
               <h3>Before your first transaction</h3>
@@ -2154,9 +2162,11 @@
     var TOKEN_PROG = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
     var TOKEN22_PROG = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
     var TOTAL_SUPPLY_RAW = "1000000000000000"; /* 1,000,000,000 tokens × 10^6 */
-    /* Vector Pad is a mainnet app — there is no network switcher. */
+    /* Mainnet is the default; the header switcher flips the whole app to
+       devnet (free test SOL) so a launch can be rehearsed end-to-end. */
     var NETWORKS = {
-      mainnet: { key:"mainnet", label:"Mainnet", rpc:"https://solana-rpc.publicnode.com", rpcFallback:"https://api.mainnet-beta.solana.com", usdc:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", clusterParam:"" }
+      mainnet: { key:"mainnet", label:"Mainnet", rpc:"https://solana-rpc.publicnode.com", rpcFallback:"https://api.mainnet-beta.solana.com", usdc:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", clusterParam:"" },
+      devnet: { key:"devnet", label:"Devnet", rpc:"https://api.devnet.solana.com", rpcFallback:"https://api.devnet.solana.com", usdc:"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", clusterParam:"?cluster=devnet" }
     };
     var STOCKS = [
       {sym:"NVDAx", name:"NVIDIA", mint:"Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh"},
@@ -2170,10 +2180,13 @@
       {sym:"SPCXx", name:"SpaceX", mint:"Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8"}
     ];
     function buildPairs(net){
-      return [
+      var base = [
         {sym:"SOL", name:"Solana", mint:SOL_MINT, stock:false, decimals:9, programId:TOKEN_PROG},
         {sym:"USDC", name:"USD Coin", mint:NETWORKS[net].usdc, stock:false, decimals:6, programId:TOKEN_PROG}
-      ].concat(STOCKS.map(function(s){ return {sym:s.sym, name:s.name, mint:s.mint, stock:true, decimals:8, programId:TOKEN22_PROG}; }));
+      ];
+      /* xStocks exist only on mainnet — devnet pairs are SOL and devnet USDC. */
+      if(net === "devnet") return base;
+      return base.concat(STOCKS.map(function(s){ return {sym:s.sym, name:s.name, mint:s.mint, stock:true, decimals:8, programId:TOKEN22_PROG}; }));
     }
     var PAIRS = buildPairs("mainnet");
     function buildSwapTokens(net){
@@ -2181,7 +2194,7 @@
         {sym:"SOL", name:"Solana", mint:SOL_MINT, decimals:9, programId:TOKEN_PROG, native:true},
         {sym:"USDC", name:"USD Coin", mint:NETWORKS[net].usdc, decimals:6, programId:TOKEN_PROG}
       ];
-      var stocks = STOCKS.map(function(s){ return {sym:s.sym, name:s.name, mint:s.mint, decimals:8, programId:TOKEN22_PROG}; });
+      var stocks = net === "devnet" ? [] : STOCKS.map(function(s){ return {sym:s.sym, name:s.name, mint:s.mint, decimals:8, programId:TOKEN22_PROG}; });
       return base.concat(stocks).concat(state.createdTokens);
     }
 
@@ -2195,7 +2208,7 @@
       quoteTimer: null, quoteSeq: 0,
       network: "mainnet", quote: null, quoteFor: null,
       connection: null, connectionNet: null, raydium: null, raydiumKey: null,
-      tokenPools: {}, devnetPools: {}, createdTokens: [],
+      tokenPools: {}, devnetPools: {}, createdTokens: [], pendingDeploy: null,
       deploying: false, swapping: false
     };
 
@@ -2590,13 +2603,38 @@
       applyFilters();
     }
 
-    /* ================= Network (Solana mainnet only) ================= */
-    function explorerTx(sig){ return "https://solscan.io/tx/" + sig; }
-    function explorerAddr(addr){ return "https://solscan.io/account/" + addr; }
+    /* ================= Network (mainnet ⇄ devnet switcher) ================= */
+    function explorerTx(sig){ return "https://solscan.io/tx/" + sig + NETWORKS[state.network].clusterParam; }
+    function explorerAddr(addr){ return "https://solscan.io/account/" + addr + NETWORKS[state.network].clusterParam; }
     function syncNetworkUI(){
-      var sn = $("sumNetwork"); if(sn) sn.textContent = "Solana mainnet";
+      var isDev = state.network === "devnet";
+      var sn = $("sumNetwork"); if(sn) sn.textContent = "Solana " + state.network;
+      var mb = $("netMainBtn"), db = $("netDevBtn");
+      if(mb) mb.classList.toggle("active", !isDev);
+      if(db) db.classList.toggle("active", isDev);
+      var bn = $("devnetBanner"); if(bn) bn.style.display = isDev ? "" : "none";
       updateActionBtn();
     }
+    function setNetwork(net){
+      if(!NETWORKS[net] || net === state.network) return;
+      state.network = net;
+      state.connection = null; state.connectionNet = null;
+      state.raydium = null; state.raydiumKey = null;
+      state.quote = null; state.quoteFor = null;
+      state.solBal = null; state.balances = {};
+      PAIRS = buildPairs(net);
+      renderPairs();
+      renderSwapTokens();
+      renderReview();
+      buildValidatorOptions();
+      syncNetworkUI();
+      if(state.wallet) loadBalances();
+      if($("view-portfolio").classList.contains("active")) loadPortfolio();
+      if($("view-stake").classList.contains("active")) loadStakeView();
+      toast(net === "devnet" ? "Switched to Solana devnet — test funds only, no real value." : "Switched to Solana mainnet — real funds.");
+    }
+    $("netMainBtn").addEventListener("click", function(){ setNetwork("mainnet"); });
+    $("netDevBtn").addEventListener("click", function(){ setNetwork("devnet"); });
 
     /* ================= Wallet =================
        Providers come from two sources, normalised to one interface
@@ -3425,7 +3463,7 @@
       }
       if(state.pairSel && !isNaN(st) && st > 0 && !isNaN(sp) && sp > 0){
         $("sumInit").textContent = fmtTokens(st, 0) + " " + (tick || "TOKEN") + " + " + fmtTokens(sp, 4) + " " + state.pairSel.sym;
-        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~0.19 SOL in Raydium fees + rent on mainnet, plus ~0.0035 SOL for the mint and network fees (≈0.21 SOL total, fixed — it does not scale with your seed).";
+        $("seedHint").textContent = "Opening price ≈ " + fmtTokens(sp / st, 8) + " " + state.pairSel.sym + " per token. Pool creation costs ~0.19 SOL in Raydium fees + rent on " + state.network + ", plus ~0.0035 SOL for the mint and network fees (≈0.21 SOL total, fixed — it does not scale with your seed).";
         if(state.pairSel.sym === "SOL"){
           $("seedTotalHint").textContent = "Total needed in your wallet ≈ " + fmtTokens(sp + CREATION_COST_SOL, 3) + " SOL — that's your " + fmtTokens(sp, 4) + " SOL seed + ≈0.21 SOL creation costs. Lower the seed above if your balance is short.";
         } else {
@@ -3776,6 +3814,35 @@
         return res.value;
       });
     }
+    function sleepMs(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+    /* Confirm by polling the signature itself. A plain confirmTransaction
+       call reports "block height exceeded" whenever its blockhash window
+       closes before it happens to observe the confirmation — including
+       transactions that DID land (a mint was created on-chain while the app
+       showed "Stopped"). This resolves true only when the cluster itself
+       says the signature is confirmed/finalized, throws on a real on-chain
+       error, and returns false only when the blockhash window has closed
+       AND a final history search still shows no trace of the signature. */
+    async function confirmSignature(conn, sig, lastValidBlockHeight){
+      var deadline = Date.now() + 120000;
+      while(true){
+        var st = await conn.getSignatureStatuses([sig], { searchTransactionHistory: true }).catch(function(){ return null; });
+        var v = st && st.value && st.value[0];
+        if(v){
+          if(v.err) throw new Error("Transaction failed on-chain: " + JSON.stringify(v.err));
+          if(v.confirmationStatus === "confirmed" || v.confirmationStatus === "finalized") return true;
+        }
+        var bh = await conn.getBlockHeight("confirmed").catch(function(){ return null; });
+        if(bh !== null && bh > lastValidBlockHeight){
+          var st2 = await conn.getSignatureStatuses([sig], { searchTransactionHistory: true }).catch(function(){ return null; });
+          var v2 = st2 && st2.value && st2.value[0];
+          if(v2 && v2.err) throw new Error("Transaction failed on-chain: " + JSON.stringify(v2.err));
+          return !!(v2 && (v2.confirmationStatus === "confirmed" || v2.confirmationStatus === "finalized"));
+        }
+        if(Date.now() > deadline) return false;
+        await sleepMs(2000);
+      }
+    }
     function isUserRejection(e){
       return !!(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")));
     }
@@ -3895,35 +3962,81 @@
           }
         }
 
-        /* ----- Tx 1: create Token-2022 mint, mint 1B, revoke mint authority ----- */
+        /* ----- Tx 1: create Token-2022 mint, mint 1B, revoke mint authority -----
+           Duplicate-proof recovery: the mint keypair for this launch is kept
+           in memory for the session. Before building anything, the chain is
+           asked whether that mint already exists — an earlier attempt whose
+           confirmation was merely reported late ("block height exceeded")
+           resumes at the pool step instead of minting a second token. */
         statusLine(box, '<span class="spin"></span> Building transaction 1 of 2 — create mint…', "mut");
-        var mintKp = w3.Keypair.generate();
-        var mintPk = mintKp.publicKey;
-        var rent = await conn.getMinimumBalanceForRentExemption(spl.MINT_SIZE);
-        var ata = spl.getAssociatedTokenAddressSync(mintPk, owner, false, spl.TOKEN_2022_PROGRAM_ID);
-        var tx1 = new w3.Transaction();
-        tx1.add(w3.SystemProgram.createAccount({ fromPubkey: owner, newAccountPubkey: mintPk, space: spl.MINT_SIZE, lamports: rent, programId: spl.TOKEN_2022_PROGRAM_ID }));
-        tx1.add(spl.createInitializeMint2Instruction(mintPk, 6, owner, null, spl.TOKEN_2022_PROGRAM_ID));
-        tx1.add(spl.createAssociatedTokenAccountInstruction(owner, ata, owner, mintPk, spl.TOKEN_2022_PROGRAM_ID));
-        tx1.add(spl.createMintToInstruction(mintPk, ata, owner, BigInt(TOTAL_SUPPLY_RAW), [], spl.TOKEN_2022_PROGRAM_ID));
-        tx1.add(spl.createSetAuthorityInstruction(mintPk, owner, spl.AuthorityType.MintTokens, null, [], spl.TOKEN_2022_PROGRAM_ID));
-        var bh1 = await conn.getLatestBlockhash("confirmed");
-        tx1.recentBlockhash = bh1.blockhash;
-        tx1.feePayer = owner;
-        tx1.partialSign(mintKp);
-        summaryLine(box, net.label + " · From " + truncAddr(state.wallet.pubkey) + " · Create Token-2022 mint $" + tick + " · Supply 1,000,000,000 · Mint authority revoked in the same tx · Est. cost ~0.0035 SOL");
-        statusLine(box, "Simulating transaction 1…", "mut");
-        await simulateTx(conn, tx1);
-        statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
-        var signed1 = await signWithWallet(tx1);
-        var sig1 = await conn.sendRawTransaction(signed1.serialize(), { skipPreflight: false, preflightCommitment: "confirmed" });
-        await conn.confirmTransaction({ signature: sig1, blockhash: bh1.blockhash, lastValidBlockHeight: bh1.lastValidBlockHeight }, "confirmed");
-        statusLine(box, '<span class="st-ok">Mint created:</span> ' + mintPk.toBase58() + ' · <a href="' + explorerAddr(mintPk.toBase58()) + '" target="_blank" rel="noopener">Solscan</a> · <a href="' + explorerTx(sig1) + '" target="_blank" rel="noopener">tx</a>');
+        var mintPk = null, sig1 = "", mintLanded = false;
+        var pend = state.pendingDeploy;
+        var pendMatch = !!(pend && pend.kp && pend.network === state.network && pend.owner === state.wallet.pubkey && pend.tick === tick && pend.name === name);
+        if(pendMatch){
+          var pendInfo = await conn.getAccountInfo(pend.kp.publicKey, "confirmed").catch(function(){ return null; });
+          if(pendInfo){
+            mintPk = pend.kp.publicKey; mintLanded = true;
+            statusLine(box, '<span class="st-ok">Your mint from the earlier attempt is already on-chain:</span> ' + mintPk.toBase58() + ' — it did land, so no new mint will be created. Skipping to the pool step.');
+          }
+        }
+        if(!mintLanded){
+          var mintKp = pendMatch ? pend.kp : w3.Keypair.generate();
+          mintPk = mintKp.publicKey;
+          state.pendingDeploy = { kp: mintKp, network: state.network, owner: state.wallet.pubkey, tick: tick, name: name };
+          if(pendMatch) statusLine(box, "Reusing the mint address from your earlier attempt (" + truncAddr(mintPk.toBase58()) + ") — if that first transaction ever lands late, this one fails safely instead of creating a duplicate.", "mut");
+          var rent = await conn.getMinimumBalanceForRentExemption(spl.MINT_SIZE);
+          var ata = spl.getAssociatedTokenAddressSync(mintPk, owner, false, spl.TOKEN_2022_PROGRAM_ID);
+          for(var attempt = 1; attempt <= 2 && !mintLanded; attempt++){
+            var tx1 = new w3.Transaction();
+            tx1.add(w3.SystemProgram.createAccount({ fromPubkey: owner, newAccountPubkey: mintPk, space: spl.MINT_SIZE, lamports: rent, programId: spl.TOKEN_2022_PROGRAM_ID }));
+            tx1.add(spl.createInitializeMint2Instruction(mintPk, 6, owner, null, spl.TOKEN_2022_PROGRAM_ID));
+            tx1.add(spl.createAssociatedTokenAccountInstruction(owner, ata, owner, mintPk, spl.TOKEN_2022_PROGRAM_ID));
+            tx1.add(spl.createMintToInstruction(mintPk, ata, owner, BigInt(TOTAL_SUPPLY_RAW), [], spl.TOKEN_2022_PROGRAM_ID));
+            tx1.add(spl.createSetAuthorityInstruction(mintPk, owner, spl.AuthorityType.MintTokens, null, [], spl.TOKEN_2022_PROGRAM_ID));
+            /* Fresh blockhash fetched as late as possible — the slow part is
+               the wallet prompt, and a blockhash only lives ~60–90 seconds. */
+            var bh1 = await conn.getLatestBlockhash("confirmed");
+            tx1.recentBlockhash = bh1.blockhash;
+            tx1.feePayer = owner;
+            tx1.partialSign(mintKp);
+            if(attempt === 1) summaryLine(box, net.label + " · From " + truncAddr(state.wallet.pubkey) + " · Create Token-2022 mint $" + tick + " · Supply 1,000,000,000 · Mint authority revoked in the same tx · Est. cost ~0.0035 SOL");
+            statusLine(box, "Simulating transaction 1…", "mut");
+            try { await simulateTx(conn, tx1); }
+            catch(simErr){
+              /* createAccount fails if the mint already exists — that means
+                 the earlier attempt landed after all. */
+              var lateInfo = await conn.getAccountInfo(mintPk, "confirmed").catch(function(){ return null; });
+              if(lateInfo){ mintLanded = true; break; }
+              throw simErr;
+            }
+            statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
+            var signed1 = await signWithWallet(tx1);
+            sig1 = await conn.sendRawTransaction(signed1.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
+            statusLine(box, "Transaction 1 sent (" + truncAddr(sig1) + ") — waiting for the cluster to confirm it…", "mut");
+            mintLanded = await confirmSignature(conn, sig1, bh1.lastValidBlockHeight);
+            if(!mintLanded){
+              /* A timeout is not proof of failure — ask the chain directly. */
+              var chkInfo = await conn.getAccountInfo(mintPk, "confirmed").catch(function(){ return null; });
+              if(chkInfo) mintLanded = true;
+              else if(attempt === 1) statusLine(box, "That transaction never landed — its blockhash expired before the cluster processed it, and no mint was created. Rebuilding with a fresh blockhash; please confirm in your wallet once more.", "mut");
+            }
+          }
+          if(!mintLanded) throw new Error("Transaction 1 did not land on " + state.network + " and no mint was created — nothing was minted and no pool was opened. Press Deploy again to retry: the same mint address (" + truncAddr(mintPk.toBase58()) + ") is reused, so a late landing can never turn into a duplicate token.");
+          statusLine(box, '<span class="st-ok">Mint created:</span> ' + mintPk.toBase58() + ' · <a href="' + explorerAddr(mintPk.toBase58()) + '" target="_blank" rel="noopener">Solscan</a>' + (sig1 ? ' · <a href="' + explorerTx(sig1) + '" target="_blank" rel="noopener">tx</a>' : ""));
+        }
         var mintInfo = await spl.getMint(conn, mintPk, "confirmed", spl.TOKEN_2022_PROGRAM_ID);
         if(mintInfo.mintAuthority !== null || mintInfo.freezeAuthority !== null || mintInfo.supply !== BigInt(TOTAL_SUPPLY_RAW) || mintInfo.decimals !== 6){
           throw new Error("Mint verification failed (authority / supply / decimals mismatch) — pool creation stopped. Mint: " + mintPk.toBase58());
         }
         statusLine(box, "Verified on-chain: supply 1,000,000,000 · 6 decimals · mint &amp; freeze authority gone.", "mut");
+        /* The coin exists from this moment — list it immediately, so even if
+           the pool step stops, the token shows up and Deploy can resume. */
+        var alreadyListed = state.createdTokens.some(function(t){ return t.mint === mintPk.toBase58(); });
+        if(!alreadyListed){
+          state.createdTokens.push({ sym: tick, name: name, mint: mintPk.toBase58(), decimals: 6, programId: TOKEN22_PROG, created: true });
+          renderSwapTokens();
+          renderLaunched();
+        }
 
         /* ----- Tx 2: Raydium CPMM pool vs the chosen pair asset ----- */
         statusLine(box, '<span class="spin"></span> Building transaction 2 of 2 — Raydium CPMM pool…', "mut");
@@ -3931,7 +4044,7 @@
         var configs = await raydium.api.getCpmmConfigs();
         if(!configs || !configs.length) throw new Error("Raydium fee configs are unavailable right now.");
         var feeConfig = Object.assign({}, configs[0]);
-        var programId = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_PROGRAM : new w3.PublicKey(DEVNET_CPMM_PROGRAM);
+        var programId = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_PROGRAM : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM;
         var poolFeeAccount = state.network === "mainnet" ? S.raydium.CREATE_CPMM_POOL_FEE_ACC : S.raydium.DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_FEE_ACC;
         if(state.network === "devnet"){
           /* The devnet API can return mainnet config IDs — recompute the PDA for this index. */
@@ -3955,10 +4068,20 @@
           computeBudgetConfig: { units: 600000, microLamports: 100000 }
         });
         var poolId = String(created.extInfo.address.poolId);
-        var execRes = await created.execute({ sendAndConfirm: true });
+        var execRes = null;
+        try { execRes = await created.execute({ sendAndConfirm: true }); }
+        catch(poolErr){
+          /* Same late-confirmation trap as the mint step: if the pool account
+             exists on-chain, the launch actually finished — do not report
+             failure, and do not let a retry open a second pool. */
+          var poolAcct = await conn.getAccountInfo(new w3.PublicKey(poolId), "confirmed").catch(function(){ return null; });
+          if(!poolAcct) throw poolErr;
+          statusLine(box, "The pool transaction's confirmation came back late, but the pool is on-chain — treating the launch as complete.", "mut");
+          execRes = { txId: "" };
+        }
         var sig2 = execRes && execRes.txId ? execRes.txId : "";
         state.tokenPools[mintPk.toBase58() + ":" + state.network] = poolId;
-        state.createdTokens.push({ sym: tick, name: name, mint: mintPk.toBase58(), decimals: 6, programId: TOKEN22_PROG, created: true });
+        state.pendingDeploy = null;
         if(state.network === "devnet"){
           state.devnetPools[mintPk.toBase58()] = { poolId: poolId, pairMint: p.mint, pairSym: p.sym };
         }
@@ -4017,7 +4140,8 @@
         statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
         var signed = await state.wallet.provider.signTransaction(tx);
         var sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
-        await conn.confirmTransaction({ signature: sig, blockhash: tx.message.recentBlockhash, lastValidBlockHeight: res.lastValidBlockHeight }, "confirmed");
+        var swapLanded = await confirmSignature(conn, sig, res.lastValidBlockHeight);
+        if(!swapLanded) throw new Error("The swap transaction did not land before its blockhash expired — check your wallet activity before retrying; do not resend blindly.");
         statusLine(box, '<span class="st-ok">Swap confirmed.</span> <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">View on Solscan</a>');
         toast("Swap confirmed");
         loadBalances();
@@ -4253,7 +4377,8 @@
       statusLine(box, "Simulation OK. Confirm in your wallet…", "mut");
       var signed = await signWithWallet(tx);
       var sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: "confirmed", maxRetries: 3 });
-      await conn.confirmTransaction({ signature: sig, blockhash: bh.blockhash, lastValidBlockHeight: bh.lastValidBlockHeight }, "confirmed");
+      var stakeLanded = await confirmSignature(conn, sig, bh.lastValidBlockHeight);
+      if(!stakeLanded) throw new Error("The transaction did not land before its blockhash expired — check your wallet activity before retrying.");
       return sig;
     }
     function resolveValidator(){
