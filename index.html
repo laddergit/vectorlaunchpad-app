@@ -5368,8 +5368,12 @@
             pump.fun's retired upload endpoint.
          2. filebin.net — anonymous, no key. Raw-body POST to a random
             per-launch bin; the file URL serves the bytes directly and
-            every response (upload, file GET, even the storage redirect)
-            carries CORS headers a browser accepts. BUT filebin is a
+            the POST response carries Access-Control-Allow-Origin: *.
+            BUT the upload must go out as a CORS “simple request” (see
+            filebinUpload): filebin's edge answers preflight OPTIONS
+            without Access-Control-Allow-Methods / -Headers, so any
+            preflighted request dies in the browser as “Failed to
+            fetch” before the upload is sent. filebin is also a
             temporary host: bins are deleted after ~6 days, so when this
             path is used the status box says so out loud — a photo that
             must live forever needs the Pinata path above.
@@ -5435,7 +5439,25 @@
     }
     async function filebinUpload(blob, filename, bin){
       var url = "https://filebin.net/" + bin + "/" + filebinName(filename);
-      var r = await fetchTimeout(url, { method: "POST", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob }, 45000);
+      /* CORS-simple request on purpose: the bytes are re-wrapped in a
+         text/plain Blob and no Content-Type header is set by hand, so
+         fetch() never sends a preflight. filebin's edge (Varnish)
+         answers OPTIONS with Access-Control-Allow-Origin but WITHOUT
+         Access-Control-Allow-Methods / Access-Control-Allow-Headers,
+         so a preflighted request — e.g. one carrying the file's real
+         Content-Type: image/png or application/json — is rejected by
+         the browser before the upload is even sent, and surfaces only
+         as “Failed to fetch”. That was the actual bug behind the
+         repeated launch failures: server-side tests (curl sends no
+         preflight) passed while every real browser failed, VPN or no
+         VPN (user re-tested with VPN off, 22 Nov 2026 — same failure).
+         The POST response itself carries Access-Control-Allow-Origin: *,
+         and filebin serves the file by its filename extension
+         (verified 22 Nov 2026: a .png uploaded as text/plain comes
+         back served as image/png), so the simple request loses
+         nothing. */
+      var body = new Blob([blob], { type: "text/plain" });
+      var r = await fetchTimeout(url, { method: "POST", body: body }, 45000);
       if(!r.ok) throw new Error("filebin answered HTTP " + r.status);
       return url;
     }
@@ -5456,6 +5478,7 @@
       var metaBlob = function(){ return new Blob([JSON.stringify(meta)], { type: "application/json" }); };
       if(wizImageFile){
         var imgName = wizImageFile.name || "token-image";
+        var hostErrs = [];
         /* Host 1: Pinata IPFS — permanent, but only with the user's JWT. */
         if(hasJwt){
           try {
@@ -5464,6 +5487,7 @@
             uri = await pinataUploadJson(meta);
             statusLine(box, '<span class="st-ok">Image + metadata pinned on IPFS (Pinata):</span> ' + esc(uri));
           } catch(e1){
+            hostErrs.push("Pinata: " + shortErr(e1));
             statusLine(box, "Pinata upload failed (" + esc(shortErr(e1)) + ") — trying the next host…", "mut");
             uri = "";
           }
@@ -5479,7 +5503,8 @@
             uri = await filebinUpload(metaBlob(), "metadata.json", bin);
             statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri) + ' — heads up: filebin is a temporary host and deletes files after ~6 days, so this photo will stop loading then. For a permanent photo, add a Pinata JWT in step 1 (free Pinata account) and launch again.');
           } catch(e2){
-            statusLine(box, '<span class="st-err">Every upload host failed (' + esc(shortErr(e2)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all. The upload is NOT cached: check your connection and press Launch again to retry it, or use “Test upload” in step 1 first.');
+            hostErrs.push("filebin: " + shortErr(e2));
+            statusLine(box, '<span class="st-err">Every upload host failed (' + esc(hostErrs.join(" · ")) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all. The upload is NOT cached: check your connection and press Launch again to retry it, or use “Test upload” in step 1 first.');
             uri = "";
           }
         }
@@ -5491,7 +5516,7 @@
           statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri));
         } catch(e){
           var du = dataUriFor(meta);
-          if(du && du.length <= 200){ uri = du; statusLine(box, "Metadata hosts unreachable — using a short embedded data URI for the text metadata instead.", "mut"); }
+          if(du && du.length <= 200){ uri = du; statusLine(box, "Metadata host unreachable (" + esc(shortErr(e)) + ") — using a short embedded data URI for the text metadata instead.", "mut"); }
         }
       }
       if(uri){ wizMetaKey = key; wizMetaUriCache = uri; }
