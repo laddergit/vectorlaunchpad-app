@@ -4287,14 +4287,49 @@
         if(t && t.mint !== SOL_MINT) fetchTokenBalance(t);
       });
     }
+    /* One mint's balance in the connected wallet, read WITHOUT
+       getTokenAccountsByOwner. That indexed query is what kept failing
+       in the browser: publicnode's shared RPC rejects it and
+       api.mainnet-beta answers 403 to browser origins, so rpc() came
+       back null on every endpoint — the Sell panel painted "couldn't be
+       read", the % buttons had no balance to fill from, and the swap
+       panel silently painted a fake zero. The associated token account
+       address is derivable from (owner, token program, mint), so read
+       that account directly with getAccountInfo — a plain, non-indexed
+       read every endpoint in the failover chain serves. Both token
+       programs are tried: a mint lives under exactly one of them, and
+       the other program's ATA simply doesn't exist. Resolves the UI
+       balance, 0 when no ATA exists, or null when no endpoint answered —
+       a failed read is never reported as a zero balance. */
+    async function readMintBalanceViaAta(ownerStr, mintStr){
+      var S = stack(); if(!S || !S.web3) return null;
+      var w3 = S.web3;
+      var owner, mint;
+      try { owner = new w3.PublicKey(ownerStr); mint = new w3.PublicKey(mintStr); }
+      catch(e){ return null; }
+      var ataProg = new w3.PublicKey(ATA_PROGRAM_ID);
+      var progs = [TOKEN_PROG, "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"];
+      var total = 0, found = false, allAnswered = true;
+      for(var i = 0; i < progs.length; i++){
+        var ata;
+        try { ata = w3.PublicKey.findProgramAddressSync([owner.toBytes(), new w3.PublicKey(progs[i]).toBytes(), mint.toBytes()], ataProg)[0]; }
+        catch(e){ allAnswered = false; continue; }
+        var j = await rpc("getAccountInfo", [ata.toBase58(), { encoding: "jsonParsed" }]);
+        if(!j || !j.result){ allAnswered = false; continue; }
+        var v = j.result.value;
+        if(!v) continue; /* no token account under this program */
+        var info = v.data && v.data.parsed && v.data.parsed.info;
+        var ta = info && info.tokenAmount;
+        if(ta && ta.uiAmountString != null){ total += parseFloat(ta.uiAmountString || "0"); found = true; }
+        else allAnswered = false; /* account exists but came back unparsed */
+      }
+      if(found) return total;
+      return allAnswered ? 0 : null;
+    }
     function fetchTokenBalance(t){
       if(!state.wallet) return;
-      rpc("getTokenAccountsByOwner", [state.wallet.pubkey, {mint: t.mint}, {encoding:"jsonParsed"}]).then(function(j){
-        var total = 0;
-        ((j && j.result && j.result.value) || []).forEach(function(a){
-          var amt = a.account.data.parsed.info.tokenAmount;
-          total += parseFloat(amt.uiAmountString || "0");
-        });
+      readMintBalanceViaAta(state.wallet.pubkey, t.mint).then(function(total){
+        if(total == null) return; /* read failed — keep the last known balance, never paint a fake zero */
         state.balances[t.mint] = total; updateBalText();
       }).catch(function(){});
     }
@@ -6482,13 +6517,12 @@
       if(!state.wallet || !detailMint || tpBalBusy) return;
       if(tpBalFresh() && tpSellBal.bal != null) return;
       tpBalBusy = true;
-      rpc("getTokenAccountsByOwner", [state.wallet.pubkey, { mint: detailMint }, { encoding: "jsonParsed" }]).then(function(j){
+      /* ATA read, not getTokenAccountsByOwner — see readMintBalanceViaAta:
+         the indexed query is refused by the browser-facing RPC endpoints,
+         which is why this balance never appeared. */
+      readMintBalanceViaAta(state.wallet.pubkey, detailMint).then(function(total){
         tpBalBusy = false;
-        if(!j){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); return; }
-        var total = 0;
-        ((j.result && j.result.value) || []).forEach(function(a){
-          total += parseFloat(a.account.data.parsed.info.tokenAmount.uiAmountString || "0");
-        });
+        if(total == null){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); return; }
         tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: total, failed: false };
         state.balances[detailMint] = total;
         paintTpBalances();
@@ -6558,15 +6592,11 @@
         tpSetAmount(String(Math.floor(tpSellBal.bal * pct * 10000) / 10000));
         return;
       }
-      rpc("getTokenAccountsByOwner", [state.wallet.pubkey, { mint: detailMint }, { encoding: "jsonParsed" }]).then(function(j){
-        /* rpc() resolves null only when every endpoint failed — that is
-           a read failure, not a zero balance, and must not be reported
-           to the holder as "you don't hold this token". */
-        if(!j){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); toast("Couldn't read your token balance — the RPC didn't answer. Try again in a second."); return; }
-        var total = 0;
-        ((j.result && j.result.value) || []).forEach(function(a){
-          total += parseFloat(a.account.data.parsed.info.tokenAmount.uiAmountString || "0");
-        });
+      readMintBalanceViaAta(state.wallet.pubkey, detailMint).then(function(total){
+        /* The ATA read resolves null only when every endpoint failed —
+           that is a read failure, not a zero balance, and must not be
+           reported to the holder as "you don't hold this token". */
+        if(total == null){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); toast("Couldn't read your token balance — the RPC didn't answer. Try again in a second."); return; }
         tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: total, failed: false };
         state.balances[detailMint] = total;
         paintTpBalances();
