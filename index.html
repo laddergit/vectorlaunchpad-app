@@ -2556,7 +2556,34 @@
         {sym:"USDC", name:"USD Coin", mint:NETWORKS[net].usdc, decimals:6, programId:TOKEN_PROG}
       ];
       var stocks = net === "devnet" ? [] : STOCKS.map(function(s){ return {sym:s.sym, name:s.name, mint:s.mint, decimals:8, programId:TOKEN22_PROG}; });
-      return base.concat(stocks).concat(state.createdTokens);
+      /* Launched bonding-curve tokens come from the on-chain Explore scan,
+         not just this session's launches — a token created yesterday (or on
+         another device) must still appear in the Swap lists. Before this,
+         the lists held only SOL/USDC/xStocks plus session memory, so a
+         previously launched token vanished from Swap after a reload. */
+      var launched = [];
+      if(exploreCurvesNet === net){
+        var seen = {};
+        base.concat(stocks).concat(state.createdTokens).forEach(function(t){ seen[t.mint] = true; });
+        exploreCurves.forEach(function(t){
+          if(seen[t.mint]) return;
+          seen[t.mint] = true;
+          launched.push({ sym: t.sym, name: t.name, mint: t.mint, decimals: 6, programId: TOKEN_PROG, curve: true, migrated: !!t.migrated, complete: !!t.complete });
+        });
+      }
+      return base.concat(stocks).concat(state.createdTokens).concat(launched);
+    }
+    /* A swap-list entry that still trades on its Vector Pad bonding curve
+       (not yet graduated): Jupiter has no route for it — there is no DEX
+       pool until graduation — so the Swap page quotes and executes against
+       the curve itself. Returns the Explore scan entry when known, else a
+       stub for a token launched this session, else null. */
+    function curveTokenOf(t){
+      if(!t) return null;
+      var e = exploreCurves.filter(function(x){ return x.mint === t.mint; })[0];
+      if(e) return e.migrated ? null : e;
+      if((t.curve || t.bonding) && !t.migrated) return { mint: t.mint, sym: t.sym, name: t.name, complete: !!t.complete, migrated: false };
+      return null;
     }
 
     /* ================= State ================= */
@@ -2593,6 +2620,40 @@
     function fmtUSD(v){
       if(v==null || isNaN(v)) return "—";
       return "$"+Number(v).toLocaleString("en-US",{notation:"compact",maximumFractionDigits:2});
+    }
+    /* ================= SOL/USD price (for dollar market caps) =================
+       Market caps are computed on-chain in SOL; displaying them in dollars
+       needs a live SOL price. Jupiter's price API is primary, CoinGecko the
+       fallback — both are read at view time and cached for a minute. While
+       no price has loaded (or on devnet, whose SOL has no dollar value),
+       market caps honestly stay in SOL. */
+    var solUsd = null, solUsdAt = 0, solUsdBusy = false;
+    function fetchSolUsd(){
+      if(solUsdBusy) return;
+      if(solUsd != null && Date.now() - solUsdAt < 60000) return;
+      solUsdBusy = true;
+      fetchJSON("https://lite-api.jup.ag/price/v3?ids=" + SOL_MINT).then(function(j){
+        var p = j && j[SOL_MINT] && j[SOL_MINT].usdPrice;
+        if(p == null || !(p > 0)) throw new Error("no price");
+        solUsd = parseFloat(p); solUsdAt = Date.now(); onSolUsd();
+      }).catch(function(){
+        return fetchJSON("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd").then(function(j){
+          var p = j && j.solana && j.solana.usd;
+          if(p == null || !(p > 0)) throw new Error("no price");
+          solUsd = parseFloat(p); solUsdAt = Date.now(); onSolUsd();
+        });
+      }).catch(function(){ /* no price — market caps stay in SOL */ })
+      .then(function(){ solUsdBusy = false; });
+    }
+    function fmtMcap(mcapSol){
+      if(mcapSol == null || isNaN(mcapSol)) return "—";
+      if(state.network === "mainnet" && solUsd != null) return fmtUSD(mcapSol * solUsd);
+      return fmtTokens(mcapSol, 2) + " SOL";
+    }
+    function onSolUsd(){
+      if(exploreCurvesNet === state.network) renderCurveRows();
+      if(detailEntry) $("dStatMcap").textContent = fmtMcap(detailEntry.mcapSol);
+      if(state.bc) $("bcMcap").textContent = fmtMcap(Number(bcMcapLamports(state.bc.vsol, state.bc.vtok)) / 1e9);
     }
     function fmtNum(v){
       if(v==null || isNaN(v)) return "—";
@@ -2904,7 +2965,7 @@
       $("dStatVenue").textContent = st.venue;
       $("dStatContract").textContent = truncAddr(t.mint);
       $("dStatPrice").textContent = t.priceSol != null ? fmtTokens(t.priceSol, 8) + " SOL" : "—";
-      $("dStatMcap").textContent = t.mcapSol != null ? fmtTokens(t.mcapSol, 2) + " SOL" : "—";
+      $("dStatMcap").textContent = fmtMcap(t.mcapSol);
       $("tdMint").textContent = t.mint;
       $("tdNetwork").textContent = "Solana " + state.network;
       $("tdVenue").textContent = st.venue;
@@ -3354,6 +3415,7 @@
         exploreCurvesNet = state.network;
         renderCurveRows();
         renderLaunched();
+        renderSwapTokens();
         applyCurveTimes();
         exploreCurves.forEach(function(t){ resolveCurveImg(t.mint, t.uri); });
       } catch(e){ /* parse/RPC failure — treat like a failed scan, never as "no curves exist" */
@@ -3408,7 +3470,7 @@
             '<div><div class="tok-name">' + esc(t.name) + ' ' + curveStatusBadge(t) + '</div>' +
             '<div class="tok-sym">$' + esc(t.sym) + ' · ' + truncAddr(t.mint) + '</div></div></div></td>' +
           '<td class="num">' + fmtAge(t.createdAt) + '</td>' +
-          '<td class="num">' + fmtTokens(t.mcapSol, 2) + ' SOL</td>' +
+          '<td class="num">' + fmtMcap(t.mcapSol) + '</td>' +
           '<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td>' +
           '<td class="num">1%</td>' +
           '<td>Creator</td>' +
@@ -3429,7 +3491,7 @@
               '<button type="button" class="watch-btn" data-watch-mint="' + t.mint + '" aria-label="Watch ' + esc(t.sym) + '">' + starSVG() + '</button></div>' +
             '<div class="cc-nums">' +
               '<div><div class="lbl">Price</div><div class="v num">' + fmtTokens(t.priceSol, 8) + ' SOL</div></div>' +
-              '<div><div class="lbl">Market cap</div><div class="v num">' + fmtTokens(t.mcapSol, 2) + ' SOL</div></div>' +
+              '<div><div class="lbl">Market cap</div><div class="v num">' + fmtMcap(t.mcapSol) + '</div></div>' +
               '<div><div class="lbl">SOL in curve</div><div class="v small num">' + fmtTokens(t.solIn, 3) + ' SOL</div></div>' +
               '<div><div class="lbl">To graduation</div><div class="v small num">' + t.progress.toFixed(1) + '%</div></div>' +
             '</div></div>');
@@ -4209,7 +4271,7 @@
         sel.innerHTML = "";
         SWAP_TOKENS.forEach(function(t){
           var o = document.createElement("option");
-          o.value = t.mint; o.textContent = t.sym;
+          o.value = t.mint; o.textContent = (t.curve || t.bonding) ? t.sym + " · " + truncAddr(t.mint) : t.sym;
           if(t.mint === selectedMint) o.selected = true;
           sel.appendChild(o);
         });
@@ -4264,6 +4326,9 @@
       if(!state.wallet){
         b.classList.add("connect");
         b.textContent = "Connect wallet to swap";
+      } else if(state.swapIn && state.swapOut && (curveTokenOf(state.swapIn) || curveTokenOf(state.swapOut))){
+        b.classList.add("swap");
+        b.textContent = "Swap "+state.swapIn.sym+" → "+state.swapOut.sym;
       } else if(state.network==="devnet" && !(state.swapIn && state.swapOut && devnetRouteFor(state.swapIn.mint, state.swapOut.mint))){
         b.classList.add("connect");
         b.textContent = "No devnet pool for this pair";
@@ -4311,7 +4376,7 @@
       state.quoteTimer = setTimeout(refreshQuote, 400);
     });
     function renderDevnetQuote(){
-      state.quote = null; state.quoteFor = null;
+      state.quote = null; state.quoteFor = null; state.curveQuote = null;
       var route = (state.swapIn && state.swapOut) ? devnetRouteFor(state.swapIn.mint, state.swapOut.mint) : null;
       $("recvAmt").textContent = "—";
       $("qImpact").textContent = "—"; $("qMin").textContent = "—";
@@ -4321,14 +4386,18 @@
     }
     function refreshQuote(){
       if(!state.swapIn || !state.swapOut) return;
-      if(state.network === "devnet"){ renderDevnetQuote(); return; }
       var inT = state.swapIn, outT = state.swapOut;
       if(inT.mint === outT.mint){
-        state.quote = null; state.quoteFor = null;
+        state.quote = null; state.quoteFor = null; state.curveQuote = null;
         $("recvAmt").textContent = "—"; $("qImpact").textContent="—"; $("qMin").textContent="—";
         $("qRoute").textContent = "Pick two different tokens"; $("amtUsd").textContent = "≈ —";
         return;
       }
+      /* A pair involving a live bonding-curve token never reaches Jupiter
+         or the devnet pool router — it is quoted off the curve itself. */
+      var cIn = curveTokenOf(inT), cOut = curveTokenOf(outT);
+      if(cIn || cOut){ refreshCurveQuote(inT, outT, cIn || cOut); return; }
+      if(state.network === "devnet"){ renderDevnetQuote(); return; }
       var rawStr = ($("amtInput").value||"").replace(/,/g,"").trim();
       var raw = parseFloat(rawStr);
       if(isNaN(raw) || raw<=0){
@@ -4362,6 +4431,76 @@
         $("recvAmt").textContent = "No route";
         $("qImpact").textContent="—"; $("qMin").textContent="—"; $("qRoute").textContent="—";
       });
+    }
+
+    /* Quote for a pair involving a bonding-curve token: priced straight
+       off the curve account's virtual reserves with the same math the
+       program uses (bcQuoteBuy / bcQuoteSell) — a curve token has no DEX
+       pool, so Jupiter can never quote it. Curve trades are SOL-only:
+       the other side of the pair must be SOL. */
+    var curveQuoteSeq = 0;
+    async function refreshCurveQuote(inT, outT, ce){
+      state.quote = null; state.quoteFor = null; state.curveQuote = null;
+      var other = inT.mint === ce.mint ? outT : inT;
+      var rawStr = ($("amtInput").value || "").replace(/,/g, "").trim();
+      var raw = parseFloat(rawStr);
+      function clear(msg){
+        $("recvAmt").textContent = "—"; $("qImpact").textContent = "—"; $("qMin").textContent = "—";
+        $("qRoute").textContent = msg || "—"; $("amtUsd").textContent = "≈ —";
+      }
+      if(other.mint !== SOL_MINT){ clear("Curve tokens trade against SOL — set the other side to SOL"); return; }
+      if(ce.complete){ clear("Curve complete — graduate it from its token page"); return; }
+      if(isNaN(raw) || raw <= 0){ clear("Vector Pad bonding curve"); return; }
+      var seq = ++curveQuoteSeq;
+      $("recvAmt").innerHTML = '<span class="spin"></span>';
+      $("recvUnit").textContent = outT.sym + " · bonding curve quote";
+      var S = stack();
+      if(!S){ clear("Solana libraries are still loading — try again in a second"); return; }
+      try {
+        var c = (state.bc && state.bc.mintStr === ce.mint) ? state.bc : null;
+        if(!c){
+          var info = await getConnection().getAccountInfo(bcCurvePda(S.web3, new S.web3.PublicKey(ce.mint)), "confirmed");
+          if(seq !== curveQuoteSeq) return;
+          c = info ? bcParseCurve(info.data) : null;
+          if(!c){ clear("Couldn't read this token's curve — try again"); return; }
+          c.mintStr = ce.mint;
+        }
+        if(c.migrated){ clear("Graduated — trade it via Jupiter"); return; }
+        if(c.complete){ clear("Curve complete — graduate it from its token page"); return; }
+        var buy = outT.mint === ce.mint;
+        var out, minOut, impactPct, solSide;
+        if(buy){
+          var lamports = BigInt(Math.round(raw * 1e9));
+          var q = bcQuoteBuy(lamports, c.vsol, c.vtok, c.realTok);
+          out = Number(q.tokensOut) / 1e6;
+          minOut = out * (10000 - state.slippage) / 10000;
+          var spotOut = q.netSol * BigInt(c.vtok) / BigInt(c.vsol);
+          impactPct = spotOut > 0n ? Number((spotOut - q.tokensOut) * 10000n / spotOut) / 100 : 0;
+          solSide = raw;
+        } else {
+          var atomic = BigInt(Math.round(raw * 1e6));
+          var qs = bcQuoteSell(atomic, c.vsol, c.vtok);
+          out = Number(qs.solOut) / 1e9;
+          minOut = out * (10000 - state.slippage) / 10000;
+          var spotSol = atomic * BigInt(c.vsol) / BigInt(c.vtok);
+          impactPct = spotSol > 0n ? Number((spotSol - qs.gross) * 10000n / spotSol) / 100 : 0;
+          solSide = out;
+        }
+        state.curveQuote = { mint: ce.mint, side: buy ? "buy" : "sell", amount: rawStr, inMint: inT.mint, outMint: outT.mint, slippage: state.slippage };
+        var frac = outT.decimals === 9 ? 4 : 2;
+        $("recvAmt").textContent = fmtTokens(out, frac) + " " + outT.sym;
+        $("qMin").textContent = fmtTokens(minOut, frac) + " " + outT.sym;
+        $("qImpact").textContent = impactPct.toFixed(2) + "%";
+        $("qRoute").textContent = "Vector Pad bonding curve";
+        $("amtUsd").textContent = (state.network === "mainnet" && solUsd != null) ? "≈ " + fmtUSD(solSide * solUsd) : "≈ —";
+      } catch(e){
+        if(seq !== curveQuoteSeq) return;
+        state.curveQuote = null;
+        $("recvAmt").textContent = "—";
+        $("qImpact").textContent = "—"; $("qMin").textContent = "—";
+        $("qRoute").textContent = String((e && e.message) || e);
+        $("amtUsd").textContent = "≈ —";
+      }
     }
 
     /* ================= Portfolio (real balances from RPC) ================= */
@@ -6380,7 +6519,7 @@
       var mcapSol = Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9;
       $("bcPrice").textContent = fmtTokens(Number(priceLamports) / 1e9, 8) + " SOL";
       $("bcPriceSol").textContent = priceLamports.toString() + " lamports / token";
-      $("bcMcap").textContent = fmtTokens(mcapSol, 2) + " SOL";
+      $("bcMcap").textContent = fmtMcap(mcapSol);
       $("bcRealSol").textContent = fmtTokens(Number(c.realSol) / 1e9, 4) + " SOL";
       $("bcTokensLeft").textContent = fmtTokens(Number(c.realTok) / 1e6, 0);
       var pct = Math.min(100, Number(c.realSol) * 100 / Number(BC_GRAD_SOL));
@@ -6406,7 +6545,7 @@
         var priceTxt = fmtTokens(Number(priceLamports) / 1e9, 8) + " SOL";
         $("detailPrice").textContent = priceTxt;
         $("dStatPrice").textContent = priceTxt;
-        $("dStatMcap").textContent = fmtTokens(mcapSol, 2) + " SOL";
+        $("dStatMcap").textContent = fmtMcap(mcapSol);
         $("dStatLiquidity").textContent = fmtTokens(Number(c.realSol) / 1e9, 2) + " SOL";
         chartOnCurveUpdate(mcapSol);
         var dst = detailStatus(c);
@@ -6483,13 +6622,13 @@
     });
     $("bcLoadBtn").addEventListener("click", function(){ loadBcCurve($("bcMintInput").value); });
     $("bcRefreshBtn").addEventListener("click", function(){ if(state.bc) loadBcCurve(state.bc.mintStr); });
-    async function bcTrade(){
+    async function bcTrade(statusEl){
       var c = state.bc; if(!c || state.bcBusy) return;
       if(!state.wallet){ openWalletModal(); return; }
       var S = stack(), w3 = S.web3, spl = S.splToken;
       var q = bcCurrentQuote();
       if(!q || q.error){ toast(q && q.error ? q.error : "Enter a valid amount first."); return; }
-      var box = $("bcStatus");
+      var box = (statusEl && statusEl.nodeType === 1) ? statusEl : $("bcStatus");
       state.bcBusy = true; updateBcTradeBtn();
       statusBox(box, (state.bcSide === "buy" ? "Buy" : "Sell") + " · Bonding curve · Solana " + state.network);
       try {
@@ -6528,7 +6667,7 @@
         statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
       } finally { state.bcBusy = false; updateBcTradeBtn(); }
     }
-    $("bcTradeBtn").addEventListener("click", bcTrade);
+    $("bcTradeBtn").addEventListener("click", function(){ bcTrade(); });
     async function bcGraduate(){
       var c = state.bc; if(!c || state.bcBusy) return;
       if(!state.wallet){ openWalletModal(); return; }
@@ -6619,8 +6758,43 @@
     function executeSwap(){
       if(state.swapping) return;
       if(!state.wallet){ openWalletModal(); return; }
+      var ce = curveTokenOf(state.swapIn) || curveTokenOf(state.swapOut);
+      if(ce){ executeCurveSwap(ce); return; }
       if(state.network === "devnet") executeDevnetSwap();
       else executeJupiterSwap();
+    }
+    /* Swap execution for a bonding-curve pair: loads the token's curve
+       into the curve-panel state and runs the exact same trade path as
+       the token page (bcTrade — simulate, summary, wallet sign), only
+       reporting into the Swap status box. Nothing new is signed here
+       that the token page would not sign. */
+    async function executeCurveSwap(ce){
+      var inT = state.swapIn, outT = state.swapOut;
+      var other = inT.mint === ce.mint ? outT : inT;
+      if(!other || other.mint !== SOL_MINT){ toast("Curve tokens trade against SOL — set the other side to SOL."); return; }
+      if(ce.complete){ toast("This curve is complete — graduate it from its token page first."); return; }
+      var cq = state.curveQuote;
+      var rawStr = ($("amtInput").value || "").replace(/,/g, "").trim();
+      if(!cq || cq.mint !== ce.mint || cq.amount !== rawStr || cq.inMint !== inT.mint || cq.outMint !== outT.mint || cq.slippage !== state.slippage){
+        toast("The amount changed — wait a moment for the fresh curve quote, then try again.");
+        refreshQuote();
+        return;
+      }
+      state.swapping = true;
+      try {
+        await loadBcCurve(ce.mint);
+        if(!state.bc || state.bc.mintStr !== ce.mint){ toast("Couldn't load this token's curve — nothing was sent."); return; }
+        bcSetSide(cq.side);
+        state.bcSlippage = state.slippage;
+        $("bcAmt").value = rawStr;
+        updateBcQuote();
+        await bcTrade($("swapStatus"));
+      } finally {
+        state.swapping = false;
+        state.curveQuote = null;
+        loadBalances();
+        refreshQuote();
+      }
     }
     async function executeJupiterSwap(){
       var S = stack();
@@ -7333,6 +7507,8 @@
     renderSwapTokens();
     renderCurveRows();
     loadExploreCurves();
+    fetchSolUsd();
+    setInterval(fetchSolUsd, 60000);
     syncNetworkUI();
     loadPopular();
     loadLiveBar();
