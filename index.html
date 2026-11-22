@@ -328,7 +328,7 @@
       .chg-chip{font-weight:700;font-size:13.5px;padding:4px 10px;border-radius:999px}
       .chg-chip.up{background:var(--green-bg);color:var(--green)}
       .chg-chip.down{background:var(--red-bg);color:var(--red)}
-      .detail-stats{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin:20px 0}
+      .detail-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
       .detail-grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:16px;align-items:start}
       .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
       .card h3{margin:0 0 12px;font-size:16px;font-weight:800;letter-spacing:-.01em}
@@ -337,6 +337,29 @@
       .chart-box{width:100%}
       .chart-box svg{display:block;width:100%;height:auto}
       .axis-lbl{font-size:10.5px;fill:var(--faint);font-weight:600}
+      /* ---------- Token page: market-cap chart + trade panel ---------- */
+      .chart-top{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+      .chart-lbl{font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:5px}
+      .chart-big{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:3px}
+      .chart-big .cv{font-size:31px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+      .chart-sub{font-size:12.5px;color:var(--faint);font-weight:500;margin-top:3px}
+      .chart-tools{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .chart-type-btn{height:36px;padding:0 13px;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+      .chart-wrap{position:relative}
+      .chart-tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:var(--shadow);padding:8px 11px;font-size:12px;font-weight:600;line-height:1.55;z-index:5;white-space:nowrap;color:var(--muted)}
+      .chart-tip b{color:var(--text)}
+      .chart-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted);font-size:14px;font-weight:600;pointer-events:none}
+      .tp-head{display:flex;align-items:center;gap:11px;margin-bottom:14px;text-align:left}
+      .tp-head img{width:38px;height:38px;border-radius:11px;object-fit:cover;background:var(--surface-3);flex:none}
+      .tp-head .tp-name{font-weight:800;font-size:16.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .tp-head .tp-sub{font-size:12px;color:var(--faint);font-weight:600;margin-top:1px}
+      .tp-slip{margin-left:auto;flex:none;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);border-radius:9px;height:32px;padding:0 10px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+      .tp-slip:hover{color:var(--text)}
+      .tp-quick{display:flex;gap:7px;margin-top:10px}
+      .tp-quick button{flex:1;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:9px;height:34px;font-size:13px;font-weight:700}
+      .tp-quick button:hover{border-color:var(--border-strong)}
+      .tp-note{font-size:12.5px;color:var(--faint);font-weight:500;text-align:center;margin:12px 0 0}
+      .tp-amt-lbl{font-size:12px;color:var(--faint);font-weight:600;margin:0 0 1px}
       .risk-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
       .risk-list li{display:flex;gap:10px;font-size:14px;color:var(--text)}
       .risk-list li svg{flex:none;margin-top:1px}
@@ -1212,7 +1235,11 @@
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px" id="detailBadges">
               <span class="badge">Solana</span>
             </div>
-            <p class="note-line" style="margin-top:10px;max-width:540px" id="detailCA">Pick a token from Explore — its page opens here.</p>
+            <div class="ca-row">
+              <span class="ca-chip"><span id="detailCA">Pick a token from Explore</span><button type="button" id="detailCopyBtn" aria-label="Copy contract address"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></span>
+              <span class="badge" id="detailAge" style="display:none"></span>
+              <a class="badge" id="detailSolscanChip" href="#" target="_blank" rel="noopener" style="display:none;text-decoration:none">Solscan ↗</a>
+            </div>
           </div>
           <div class="head-actions">
             <button type="button" class="btn btn-ghost watch-btn-lg" id="detailWatchBtn" style="height:40px">
@@ -1228,17 +1255,48 @@
         </div>
 
         <div class="detail-stats">
+          <div class="stat"><div class="lbl">Price</div><div class="val num" id="dStatPrice">—</div><div class="sub">Per token, from the curve</div></div>
+          <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="dStatMcap">—</div><div class="sub">At the current curve price</div></div>
+          <div class="stat"><div class="lbl">Holders</div><div class="val num" id="dStatHolders">—</div><div class="sub">Wallets holding &gt; 0</div></div>
+          <div class="stat"><div class="lbl">Fee</div><div class="val num">1%</div><div class="sub">0.3% to the creator · 0.7% protocol</div></div>
+          <div class="stat"><div class="lbl">Liquidity</div><div class="val num" id="dStatLiquidity">—</div><div class="sub">SOL in the curve</div></div>
           <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:19px" id="dStatStatus">—</div></div>
           <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px" id="dStatVenue">—</div></div>
-          <div class="stat"><div class="lbl">Network</div><div class="val" style="font-size:19px">Solana</div></div>
           <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px" id="dStatContract">—</div><div class="sub" id="dStatContractSub">Mint address</div></div>
-          <div class="stat"><div class="lbl">Price</div><div class="val num" id="dStatPrice">—</div></div>
-          <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="dStatMcap">—</div></div>
-          <div class="stat"><div class="lbl">Holders</div><div class="val num">—</div></div>
         </div>
 
         <div class="detail-grid">
           <div style="display:grid;gap:16px;min-width:0">
+            <div class="card" id="chartCard">
+              <div class="chart-top">
+                <div>
+                  <div class="chart-lbl">Market cap <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div>
+                  <div class="chart-big"><span class="cv num" id="chartMcap">—</span><span class="chg-chip" id="chartChg" style="background:var(--surface-3);color:var(--muted)">—</span></div>
+                  <div class="chart-sub">In SOL, from trades in its own bonding-curve market</div>
+                </div>
+                <div class="chart-tools">
+                  <span class="seg tf-seg" id="chartTf" role="group" aria-label="Chart time range">
+                    <button type="button" data-tf="1H">1H</button>
+                    <button type="button" data-tf="1D" class="active">1D</button>
+                    <button type="button" data-tf="7D">7D</button>
+                    <button type="button" data-tf="ALL">All</button>
+                  </span>
+                  <button type="button" class="btn btn-ghost chart-type-btn" id="chartTypeBtn" aria-label="Toggle chart type">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                    <span id="chartTypeLbl">Candles</span>
+                  </button>
+                  <button type="button" class="btn btn-ghost chart-type-btn" id="chartReloadBtn" aria-label="Reload chart">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <div class="chart-box" id="chartBox"></div>
+                <div class="chart-tip" id="chartTip" style="display:none"></div>
+                <div class="chart-msg" id="chartMsg">Open a token — its chart loads here.</div>
+              </div>
+            </div>
+
             <div class="card" id="bondingPanel">
               <h3>Bonding curve <span class="badge" id="bcBadge">Vector Pad program</span></h3>
               <p class="note-line" style="margin:0 0 12px" id="bcIntro">Price from the curve. Graduates to Raydium at ~85 SOL.</p>
@@ -1334,12 +1392,32 @@
           </div>
 
           <!-- Trade panel -->
-          <div class="card trade-panel" style="text-align:center">
-            <img id="tpImg" src="assets/logo-sky.png" alt="" style="width:64px;height:64px;object-fit:contain" />
-            <h3 style="font-size:19px;margin-top:8px" id="tpTitle">No token loaded</h3>
-            <p class="note-line" style="margin:0 0 16px" id="tpText">Pick a token from Explore to open its page.</p>
-            <button type="button" class="btn btn-grad" data-nav="swap" style="width:100%;height:46px">Swap</button>
-            <button type="button" class="btn btn-ghost" data-nav="stake" style="width:100%;height:46px;margin-top:9px">Stake SOL</button>
+          <div class="card trade-panel">
+            <div class="tp-head">
+              <img id="tpImg" src="assets/logo-sky.png" alt="" />
+              <div style="min-width:0">
+                <div class="tp-name" id="tpTitle">No token loaded</div>
+                <div class="tp-sub" id="tpSub">Bonding curve · Solana</div>
+              </div>
+              <button type="button" class="tp-slip" id="tpSlipBtn" aria-label="Cycle slippage tolerance">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                <span id="tpSlipLbl">Slippage 1%</span>
+              </button>
+            </div>
+            <div class="bs-tabs" style="margin-bottom:12px">
+              <button type="button" id="tpTabBuy" class="active buy">Buy</button>
+              <button type="button" id="tpTabSell" class="sell">Sell</button>
+            </div>
+            <div class="amt-box">
+              <div class="tp-amt-lbl" id="tpAmtLbl">You pay</div>
+              <div class="row"><input type="text" inputmode="decimal" id="tpAmt" placeholder="0" aria-label="Trade amount" /><span class="unit" id="tpAmtUnit">SOL</span></div>
+              <div class="usd" id="tpQuote">Fee 1%.</div>
+            </div>
+            <div class="tp-quick" id="tpQuick"></div>
+            <p class="tp-note" id="tpNote">Connecting a wallet is free and moves no money.</p>
+            <button type="button" class="action-btn connect" id="tpTradeBtn">Connect wallet</button>
+            <div class="tx-status" id="tpStatus"></div>
+            <p class="note-line" id="tpText" style="margin-top:12px">Pick a token from Explore to open its page.</p>
           </div>
         </div>
       </section>
@@ -2793,12 +2871,23 @@
     }
     function renderDetailHeader(t){
       if(!t || !t.mint) return;
+      var prevCreated = (detailEntry && detailEntry.mint === t.mint) ? detailEntry.createdAt : 0;
+      if(!t.createdAt && prevCreated) t.createdAt = prevCreated;
       detailEntry = t;
       var st = detailStatus(t);
       $("detailName").textContent = t.name || "Unknown token";
       $("detailSym").textContent = t.sym ? "$" + t.sym : "";
-      $("detailBadges").innerHTML = curveStatusBadge(t) + '<span class="badge">Solana</span>' + (t.creator ? '<span class="badge">Creator ' + truncAddr(t.creator) + '</span>' : "");
-      $("detailCA").innerHTML = 'CA: <b style="word-break:break-all">' + esc(t.mint) + "</b>";
+      $("detailBadges").innerHTML = curveStatusBadge(t) + '<span class="badge">Solana</span>' + '<span class="badge">Pays creator</span>' + (t.creator ? '<span class="badge">Creator ' + truncAddr(t.creator) + '</span>' : "");
+      $("detailCA").textContent = truncAddr(t.mint);
+      $("detailCA").title = t.mint;
+      var ageEl = $("detailAge");
+      if(t.createdAt){ ageEl.textContent = fmtAge(t.createdAt) + " old"; ageEl.style.display = ""; }
+      else ageEl.style.display = "none";
+      var sChip = $("detailSolscanChip");
+      sChip.href = explorerAddr(t.mint); sChip.style.display = "";
+      if(t.solIn != null) $("dStatLiquidity").textContent = fmtTokens(t.solIn, 2) + " SOL";
+      loadTokenHolders(t.mint);
+      var tpSub = $("tpSub"); if(tpSub) tpSub.textContent = (t.sym ? "$" + t.sym + " · " : "") + st.venue + " · Solana " + state.network;
       [["detailImg"],["tpImg"]].forEach(function(pair){
         var im = $(pair[0]); if(!im) return;
         im.setAttribute("data-curve-img", t.mint);
@@ -2894,22 +2983,114 @@
       if(u.indexOf("ipfs://") === 0) return "https://ipfs.io/ipfs/" + u.slice(7).replace(/^ipfs\//, "");
       return u;
     }
+    /* Some hosts refuse to serve the file to a browser at all. filebin.net
+       (the app's fallback upload host) gates every browser-like client
+       behind a one-time "Heads up!" warning page: the first request gets
+       an HTML interstitial (200, text/html) plus a cookie, and only
+       requests carrying that cookie — or clients that look like curl /
+       wget — are redirected to the real bytes. A cross-origin <img> or
+       fetch() from this page can never carry that cookie (the warning's
+       CORS header is "*", which forbids credentialed reads, and the
+       cookie is SameSite-Lax), so in a browser the metadata fetch died
+       on r.json() and the photo probe died on an HTML "image" — the
+       token kept its placeholder even though the upload had worked.
+       The display path therefore falls back to public fetch proxies,
+       whose server-side requests filebin serves directly. Each free
+       proxy is unreliable on its own (rate limits, origin timeouts), so
+       the read cascades through several and retries a few times per
+       session; the first URL that actually loads is cached and reused.
+       Direct access is always tried first — a proxy only ever sees a
+       URL the browser already failed to read itself. Hosts that serve
+       browsers normally (Pinata, IPFS gateways) never touch a proxy. */
+    var READ_PROXIES = [
+      function(u){ return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
+      function(u){ return "https://api.codetabs.com/v1/proxy?quest=" + u; },
+      function(u){ return "https://api.cors.lol/?url=" + encodeURIComponent(u); }
+    ];
+    function fetchWithTimeout(u, ms){
+      if(!("AbortController" in window)) return fetch(u);
+      var ctl = new AbortController();
+      var to = setTimeout(function(){ ctl.abort(); }, ms);
+      return fetch(u, { signal: ctl.signal }).then(function(r){ clearTimeout(to); return r; }, function(e){ clearTimeout(to); throw e; });
+    }
+    /* Resolves to the parsed JSON, or null when every route failed. A
+       200 with an HTML body (the filebin warning page, relayed by a
+       proxy or served directly) counts as failure, not as JSON. */
+    function fetchMetaJson(url){
+      function attempt(u, ms){
+        return fetchWithTimeout(u, ms).then(function(r){
+          if(!r.ok) throw new Error("http " + r.status);
+          var ct = r.headers.get("content-type") || "";
+          if(ct.indexOf("text/html") >= 0) throw new Error("host served an HTML page instead of the file");
+          return r.json();
+        });
+      }
+      var chain = attempt(url, 20000);
+      READ_PROXIES.forEach(function(px){ chain = chain.catch(function(){ return attempt(px(url), 45000); }); });
+      return chain.catch(function(){ return null; });
+    }
+    /* Resolves to the image URL from the metadata JSON; to null when the
+       metadata was read and simply has no image; or to undefined when
+       the metadata could not be read at all (worth retrying later). */
     function bcMetaImage(uri){
       if(!uri) return null;
       uri = ipfsToHttp(uri);
       if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(uri)) return uri;
-      return fetch(uri).then(function(r){ return r.json(); }).then(function(j){ return ipfsToHttp((j && (j.image || j.image_url)) || null); }).catch(function(){ return null; });
+      return fetchMetaJson(uri).then(function(j){
+        if(!j) return undefined;
+        return ipfsToHttp((j.image || j.image_url) || null);
+      });
     }
-    var curveImgCache = {}; /* mint -> resolved image URL, so re-renders keep the photo */
+    var curveImgCache = {}; /* mint -> image URL that actually loaded in a browser, so re-renders keep the photo */
+    var curveImgRounds = {}; /* mint -> probe rounds already spent */
     function setCurveImg(mint, url){
       if(!url) return;
       curveImgCache[mint] = url;
-      var probe = new Image();
-      probe.onload = function(){
-        document.querySelectorAll('img[data-curve-img="' + mint + '"]').forEach(function(im){ im.src = url; });
-      };
-      probe.onerror = function(){ if(curveImgCache[mint] === url) delete curveImgCache[mint]; };
-      probe.src = url;
+      var candidates = [url];
+      READ_PROXIES.forEach(function(px){ candidates.push(px(url)); });
+      (function tryNext(i){
+        if(i >= candidates.length){
+          if(curveImgCache[mint] === url) delete curveImgCache[mint];
+          /* One more full round later — the proxies are dice rolls, and
+             a photo that missed once often lands on the next round. */
+          curveImgRounds[mint] = (curveImgRounds[mint] || 0) + 1;
+          if(curveImgRounds[mint] < 3) setTimeout(function(){ if(!curveImgCache[mint]) setCurveImg(mint, url); }, 20000 * curveImgRounds[mint]);
+          return;
+        }
+        var u = candidates[i];
+        var probe = new Image();
+        probe.onload = function(){
+          curveImgCache[mint] = u;
+          document.querySelectorAll('img[data-curve-img="' + mint + '"]').forEach(function(im){ im.src = u; });
+        };
+        probe.onerror = function(){ tryNext(i + 1); };
+        probe.src = u;
+      })(0);
+    }
+    /* Resolve a token's photo from its metadata URI, with a few spaced
+       retries when the metadata itself could not be read (the proxy
+       cascade above is probabilistic per attempt). */
+    var metaImgDone = {}, metaImgBusy = {};
+    function resolveCurveImg(mint, uri, attempt){
+      if(!mint || !uri || metaImgDone[mint]) return;
+      attempt = attempt || 0;
+      var key = mint + "@" + attempt;
+      if(metaImgBusy[key]) return;
+      metaImgBusy[key] = true;
+      function retry(){
+        delete metaImgBusy[key];
+        if(attempt < 3 && !metaImgDone[mint]) setTimeout(function(){ resolveCurveImg(mint, uri, attempt + 1); }, 6000 * (attempt + 1));
+      }
+      var img = bcMetaImage(uri);
+      if(img && typeof img !== "string"){
+        img.then(function(u){
+          delete metaImgBusy[key];
+          if(u){ metaImgDone[mint] = true; setCurveImg(mint, u); }
+          else if(u === null){ metaImgDone[mint] = true; /* metadata read — this token has no photo */ }
+          else retry();
+        });
+      } else if(img){ metaImgDone[mint] = true; setCurveImg(mint, img); delete metaImgBusy[key]; }
+      else { metaImgDone[mint] = true; delete metaImgBusy[key]; }
     }
     /* getProgramAccounts is where the old scan died in real browsers: the
        primary RPC (publicnode) refuses it without a personal token, and
@@ -3117,11 +3298,7 @@
         renderCurveRows();
         renderLaunched();
         applyCurveTimes();
-        exploreCurves.forEach(function(t){
-          var img = bcMetaImage(t.uri);
-          if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
-          else if(img) setCurveImg(t.mint, img);
-        });
+        exploreCurves.forEach(function(t){ resolveCurveImg(t.mint, t.uri); });
       } catch(e){ /* parse/RPC failure — treat like a failed scan, never as "no curves exist" */
         exploreScanFailed = true;
         renderCurveRows();
@@ -3142,9 +3319,7 @@
         renderDetailHeader(t);
         /* The token's own photo lives in its metadata JSON — resolve it
            onto every img tagged with this mint (list, grid, this page). */
-        var img = bcMetaImage(t.uri);
-        if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(t.mint, u); });
-        else if(img) setCurveImg(t.mint, img);
+        resolveCurveImg(t.mint, t.uri);
       } else {
         renderDetailHeader({ mint: mint, name: "Token", sym: truncAddr(mint), uri: "", priceSol: null, mcapSol: null, complete: false, migrated: false, poolId: null, creator: null });
       }
@@ -5652,6 +5827,431 @@
       }
     }
 
+    /* ================= Token page: market-cap chart =================
+       The chart is rebuilt from the token's own on-chain history: every
+       buy/sell against its Curve account is replayed through the same
+       curve math the program uses, starting from the initial virtual
+       reserves, so each candle is the market cap the chain actually
+       printed — nothing is sampled or invented. */
+    var chartData = { mint: null, points: null, trades: 0, createdAt: 0, range: "1D", type: "candles", rendered: null, busy: false };
+    var chartCache = {};   /* net:mint -> {points, trades, createdAt} */
+    var chartWanted = null;
+    var CHART_RANGES = { "1H": 3600, "1D": 86400, "7D": 604800, "ALL": 0 };
+    var CHART_RANGE_LBL = { "1H": "1h", "1D": "24h", "7D": "7d", "ALL": "since launch" };
+    function chartInitMcap(){ return Number(bcMcapLamports(BC_INIT_VSOL, BC_INIT_VTOK)) / 1e9; }
+    function chartMsg(txt, corner){
+      var m = $("chartMsg"); if(!m) return;
+      if(!txt){ m.style.display = "none"; return; }
+      m.textContent = txt;
+      m.style.display = "flex";
+      m.style.alignItems = corner ? "flex-start" : "center";
+      m.style.justifyContent = corner ? "flex-start" : "center";
+      m.style.padding = corner ? "12px 14px" : "20px";
+      m.style.fontSize = corner ? "12.5px" : "14px";
+    }
+    async function loadTokenChart(mint, force){
+      if(!mint) return;
+      var key = state.network + ":" + mint;
+      if(!force && chartCache[key]){
+        chartData.mint = mint; chartData.points = chartCache[key].points; chartData.trades = chartCache[key].trades; chartData.createdAt = chartCache[key].createdAt;
+        renderChart(); return;
+      }
+      if(chartData.busy){ chartWanted = mint; return; }
+      chartData.busy = true;
+      if(detailMint === mint){ chartData.mint = mint; chartData.points = null; chartMsg("Reading this token's trades from the chain…"); }
+      try {
+        var S = stack(); if(!S) throw new Error("libs");
+        var curvePda = bcCurvePda(S.web3, new S.web3.PublicKey(mint)).toBase58();
+        var sigs = [], before = null, pages = 0;
+        while(pages < 3){
+          var sj = await rpc("getSignaturesForAddress", [curvePda, before ? { limit: 1000, before: before } : { limit: 1000 }]);
+          if(!sj || !Array.isArray(sj.result)) throw new Error("rpc");
+          sigs = sigs.concat(sj.result); pages++;
+          if(sj.result.length < 1000) break;
+          before = sj.result[sj.result.length - 1].signature;
+        }
+        sigs.reverse(); /* chronological */
+        var okSigs = sigs.filter(function(s){ return !s.err; });
+        var txs = new Array(okSigs.length).fill(null);
+        for(var b0 = 0; b0 < okSigs.length; b0 += 8){
+          var batch = okSigs.slice(b0, b0 + 8);
+          await Promise.all(batch.map(async function(s, bi){
+            var tj = await rpc("getTransaction", [s.signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" }]).catch(function(){ return null; });
+            txs[b0 + bi] = (tj && tj.result) ? tj.result : null;
+          }));
+        }
+        var createdAt = 0, trades = [];
+        txs.forEach(function(res, ti){
+          if(!res || !res.transaction || !res.transaction.message) return;
+          var bt = okSigs[ti].blockTime || res.blockTime || 0;
+          var keys = (res.transaction.message.accountKeys || []).map(function(k){ return typeof k === "string" ? k : ((k && k.pubkey) || ""); });
+          if(res.meta && res.meta.loadedAddresses) keys = keys.concat(res.meta.loadedAddresses.writable || [], res.meta.loadedAddresses.readonly || []);
+          var groups = [res.transaction.message.instructions || []];
+          ((res.meta && res.meta.innerInstructions) || []).forEach(function(g){ groups.push(g.instructions || []); });
+          groups.forEach(function(ixs){
+            ixs.forEach(function(ix){
+              var pid = ix.programId || keys[ix.programIdIndex];
+              if(pid !== BONDING_CURVE_PROGRAM_ID || !ix.accounts) return;
+              var accts = ix.accounts.map(function(ai){ return typeof ai === "string" ? ai : keys[ai]; });
+              if(accts.indexOf(curvePda) < 0) return;
+              var data = b58DecodeBytes(ix.data || "");
+              if(!data || data.length < 8) return;
+              var disc = ""; for(var b = 0; b < 8; b++) disc += ("0" + data[b].toString(16)).slice(-2);
+              if(disc === BC_DISC.create_curve){ if(bt && !createdAt) createdAt = bt; return; }
+              if(data.length < 16) return;
+              var amt = new DataView(data.buffer, data.byteOffset, data.byteLength).getBigUint64(8, true);
+              if(disc === BC_DISC.buy) trades.push({ t: bt, side: "buy", amt: amt });
+              else if(disc === BC_DISC.sell) trades.push({ t: bt, side: "sell", amt: amt });
+            });
+          });
+        });
+        if(!createdAt && sigs.length) createdAt = sigs[0].blockTime || 0;
+        /* Replay from the initial virtual reserves. */
+        var vsol = BC_INIT_VSOL, vtok = BC_INIT_VTOK, realTok = BC_CURVE_TOKENS;
+        var points = [], lastT = createdAt;
+        if(createdAt) points.push({ t: createdAt, mcap: chartInitMcap(), vol: 0 });
+        trades.forEach(function(tr){
+          if(tr.t) lastT = tr.t;
+          try {
+            if(tr.side === "buy"){
+              var q = bcQuoteBuy(tr.amt, vsol, vtok, realTok);
+              vsol = q.newVsol; vtok = q.newVtok; realTok -= q.tokensOut;
+              points.push({ t: lastT, mcap: Number(bcMcapLamports(vsol, vtok)) / 1e9, vol: Number(tr.amt) / 1e9 });
+            } else {
+              var qs = bcQuoteSell(tr.amt, vsol, vtok);
+              vsol = qs.newVsol; vtok = qs.newVtok; realTok += tr.amt;
+              points.push({ t: lastT, mcap: Number(bcMcapLamports(vsol, vtok)) / 1e9, vol: Number(qs.gross) / 1e9 });
+            }
+          } catch(e){ /* a trade the replay can't reproduce — skip its point, keep the curve state */ }
+        });
+        chartCache[key] = { points: points, trades: trades.length, createdAt: createdAt };
+        if(detailMint === mint){
+          chartData.mint = mint; chartData.points = points; chartData.trades = trades.length; chartData.createdAt = createdAt;
+          renderChart();
+        }
+      } catch(e){
+        if(detailMint === mint) chartMsg("Couldn't load this token's chart — tap the reload button to retry.");
+      }
+      chartData.busy = false;
+      if(chartWanted && chartWanted !== mint){ var w = chartWanted; chartWanted = null; loadTokenChart(w); }
+    }
+    /* The curve panel re-reads the live curve on every refresh — if its
+       market cap has moved away from the chart's last replayed point, a
+       trade landed since the chart was built, so rebuild it. */
+    var chartStaleAt = 0;
+    function chartOnCurveUpdate(mcapSol){
+      if(!chartData.points || chartData.mint !== detailMint || chartData.busy) return;
+      var last = chartData.points[chartData.points.length - 1];
+      if(!last) return;
+      if(Math.abs(last.mcap - mcapSol) > Math.max(0.01, last.mcap * 0.005) && Date.now() - chartStaleAt > 15000){
+        chartStaleAt = Date.now();
+        delete chartCache[state.network + ":" + detailMint];
+        loadTokenChart(detailMint, true);
+      }
+    }
+    function fmtAxisSol(v){
+      if(v >= 1000) return fmtTokens(v / 1000, 2) + "k";
+      if(v >= 100) return fmtTokens(v, 0);
+      if(v >= 10) return fmtTokens(v, 1);
+      return fmtTokens(v, 2);
+    }
+    function fmtChartTime(d, spanSec){
+      if(spanSec <= 129600) return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    }
+    function fmtChartTimeFull(d){
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " · " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    }
+    function renderChart(){
+      var box = $("chartBox"); if(!box) return;
+      var pts = chartData.points;
+      if(!pts) return; /* loading or error message is already up */
+      if(!pts.length){
+        box.innerHTML = "";
+        $("chartMcap").textContent = "—";
+        $("chartChg").textContent = "—";
+        chartMsg("No on-chain trades to chart for this token yet.");
+        return;
+      }
+      var now = Math.floor(Date.now() / 1000);
+      var end = now, start;
+      if(chartData.range === "ALL") start = pts[0].t;
+      else start = now - CHART_RANGES[chartData.range];
+      if(end - start < 120) end = start + 120;
+      var open0 = null, inWin = [];
+      pts.forEach(function(p){ if(p.t <= start) open0 = p; else if(p.t <= end) inWin.push(p); });
+      var nb = 72, bucket = Math.max(1, Math.floor((end - start) / nb));
+      nb = Math.ceil((end - start) / bucket);
+      var buckets = {};
+      inWin.forEach(function(p){ var i = Math.min(nb - 1, Math.floor((p.t - start) / bucket)); (buckets[i] = buckets[i] || []).push(p); });
+      var candles = [], prev = open0 ? open0.mcap : null;
+      for(var i = 0; i < nb; i++){
+        var bp = buckets[i] || [];
+        if(!bp.length){
+          if(prev == null) continue;
+          candles.push({ idx: i, t: start + i * bucket, o: prev, h: prev, l: prev, c: prev, vol: 0 });
+          continue;
+        }
+        var o = (prev != null) ? prev : bp[0].mcap, h = -Infinity, l = Infinity, vol = 0;
+        bp.forEach(function(p){ h = Math.max(h, p.mcap); l = Math.min(l, p.mcap); vol += p.vol; });
+        var c = bp[bp.length - 1].mcap;
+        h = Math.max(h, o, c); l = Math.min(l, o, c);
+        candles.push({ idx: i, t: start + i * bucket, o: o, h: h, l: l, c: c, vol: vol });
+        prev = c;
+      }
+      if(!candles.length){
+        box.innerHTML = "";
+        $("chartMcap").textContent = fmtTokens(pts[pts.length - 1].mcap, 2) + " SOL";
+        chartMsg("No trades inside this time range — try All.");
+        return;
+      }
+      var W = 760, H = 330, padL = 4, padR = 68, padT = 12, padB = 24;
+      var plotW = W - padL - padR, plotH = H - padT - padB;
+      var volH = plotH * 0.14, priceH = plotH - volH;
+      var min = Infinity, max = -Infinity, maxVol = 0;
+      candles.forEach(function(cd){ min = Math.min(min, cd.l); max = Math.max(max, cd.h); maxVol = Math.max(maxVol, cd.vol); });
+      if(min === max){ var pd = Math.max(min * 0.04, 0.01); min -= pd; max += pd; }
+      else { var pd2 = (max - min) * 0.07; min -= pd2; max += pd2; }
+      function X(idx){ return padL + (idx + 0.5) * (plotW / nb); }
+      function Y(v){ return padT + (max - v) / (max - min) * priceH; }
+      var bw = Math.max(1, (plotW / nb) * 0.68);
+      var up = "var(--green)", dn = "var(--red)", s = "";
+      for(var g = 0; g <= 6; g++){
+        var gv = min + (max - min) * g / 6, gy = Y(gv);
+        s += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" style="stroke:var(--border)" stroke-width="1" opacity="0.55"/>';
+        s += '<text class="axis-lbl" x="' + (W - padR + 8) + '" y="' + (gy + 3.5) + '">' + fmtAxisSol(gv) + " SOL</text>";
+      }
+      if(chartData.type === "line"){
+        var dAttr = "", firstX = null, lastX = null;
+        candles.forEach(function(cd, ci){
+          var x = X(cd.idx), y = Y(cd.c);
+          if(firstX == null) firstX = x; lastX = x;
+          dAttr += (ci ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+        });
+        s += '<path d="' + dAttr + "L" + lastX.toFixed(1) + " " + (padT + priceH) + " L" + firstX.toFixed(1) + " " + (padT + priceH) + ' Z" style="fill:var(--green)" opacity="0.08"/>';
+        s += '<path d="' + dAttr + '" fill="none" style="stroke:var(--green)" stroke-width="1.8" stroke-linejoin="round"/>';
+      } else {
+        candles.forEach(function(cd){
+          var x = X(cd.idx), col = cd.c >= cd.o ? up : dn;
+          s += '<line x1="' + x + '" y1="' + Y(cd.h) + '" x2="' + x + '" y2="' + Y(cd.l) + '" style="stroke:' + col + '" stroke-width="1"/>';
+          var yO = Y(cd.o), yC = Y(cd.c), top = Math.min(yO, yC), hgt = Math.max(1.2, Math.abs(yC - yO));
+          s += '<rect x="' + (x - bw / 2) + '" y="' + top + '" width="' + bw + '" height="' + hgt + '" style="fill:' + col + '"/>';
+        });
+      }
+      candles.forEach(function(cd){
+        if(!cd.vol || !maxVol) return;
+        var x = X(cd.idx), vh = Math.max(1, cd.vol / maxVol * (volH - 4)), col = cd.c >= cd.o ? up : dn;
+        s += '<rect x="' + (x - bw / 2) + '" y="' + (padT + plotH - vh) + '" width="' + bw + '" height="' + vh + '" style="fill:' + col + '" opacity="0.35"/>';
+      });
+      var lastC = candles[candles.length - 1], ly = Y(lastC.c), lbl = fmtAxisSol(lastC.c) + " SOL";
+      s += '<line x1="' + padL + '" y1="' + ly + '" x2="' + (W - padR) + '" y2="' + ly + '" style="stroke:var(--faint)" stroke-width="1" stroke-dasharray="3 4"/>';
+      s += '<rect x="' + (W - padR + 2) + '" y="' + (ly - 9) + '" width="64" height="18" rx="4" style="fill:var(--text)"/>';
+      s += '<text x="' + (W - padR + 34) + '" y="' + (ly + 3.5) + '" text-anchor="middle" style="font-size:10px;font-weight:700;fill:var(--bg)">' + lbl + "</text>";
+      for(var tx2 = 0; tx2 <= 5; tx2++){
+        var ti2 = Math.round(tx2 * (nb - 1) / 5);
+        s += '<text class="axis-lbl" x="' + X(ti2) + '" y="' + (H - 6) + '" text-anchor="middle">' + fmtChartTime(new Date((start + ti2 * bucket) * 1000), end - start) + "</text>";
+      }
+      s += '<g id="chartHoverG"></g>';
+      s += '<rect id="chartHit" x="' + padL + '" y="0" width="' + plotW + '" height="' + H + '" fill="transparent"/>';
+      box.innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Market cap chart">' + s + "</svg>";
+      chartMsg(chartData.trades === 0 ? "No trades yet — the first buy moves this line." : null, chartData.trades === 0);
+      var firstO = candles[0].o, lastV = lastC.c;
+      $("chartMcap").textContent = fmtTokens(lastV, 2) + " SOL";
+      var chg = firstO > 0 ? (lastV - firstO) / firstO * 100 : 0;
+      var chip = $("chartChg");
+      chip.textContent = (chg > 0 ? "+" : "") + chg.toFixed(1) + "% " + CHART_RANGE_LBL[chartData.range];
+      chip.className = "chg-chip" + (chg > 0 ? " up" : chg < 0 ? " down" : "");
+      chip.style.background = chg === 0 ? "var(--surface-3)" : "";
+      chip.style.color = chg === 0 ? "var(--muted)" : "";
+      chartData.rendered = { candles: candles, nb: nb, W: W, H: H, padL: padL, padR: padR, padT: padT, padB: padB, plotW: plotW, priceH: priceH, plotH: plotH, min: min, max: max };
+      bindChartHover();
+    }
+    function bindChartHover(){
+      var hit = document.getElementById("chartHit"), tip = $("chartTip"), g = document.getElementById("chartHoverG");
+      if(!hit || !tip || !g || !chartData.rendered) return;
+      var R = chartData.rendered;
+      hit.addEventListener("mousemove", function(ev){
+        var svg = hit.ownerSVGElement; if(!svg) return;
+        var rect = svg.getBoundingClientRect();
+        var x = (ev.clientX - rect.left) / rect.width * R.W;
+        var i = Math.floor((x - R.padL) / (R.plotW / R.nb)), cd = null;
+        R.candles.forEach(function(c){ if(c.idx === i) cd = c; });
+        if(!cd){ tip.style.display = "none"; g.innerHTML = ""; return; }
+        var cx = R.padL + (cd.idx + 0.5) * (R.plotW / R.nb);
+        var cy = R.padT + (R.max - cd.c) / (R.max - R.min) * R.priceH;
+        g.innerHTML = '<line x1="' + cx + '" y1="' + R.padT + '" x2="' + cx + '" y2="' + (R.padT + R.plotH) + '" style="stroke:var(--faint)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="' + cx + '" cy="' + cy + '" r="3.5" style="fill:var(--text)"/>';
+        tip.innerHTML = "<b>" + fmtChartTimeFull(new Date(cd.t * 1000)) + "</b><br/>O <b>" + fmtTokens(cd.o, 3) + "</b> · H <b>" + fmtTokens(cd.h, 3) + "</b><br/>L <b>" + fmtTokens(cd.l, 3) + "</b> · C <b>" + fmtTokens(cd.c, 3) + "</b> SOL" + (cd.vol ? "<br/>Vol <b>" + fmtTokens(cd.vol, 3) + " SOL</b>" : "");
+        tip.style.display = "block";
+        var wrap = tip.parentElement.getBoundingClientRect();
+        tip.style.left = Math.min(Math.max(4, (cx / R.W) * wrap.width + 12), Math.max(4, wrap.width - 158)) + "px";
+        tip.style.top = Math.max(4, (cy / R.H) * wrap.height - 12) + "px";
+      });
+      hit.addEventListener("mouseleave", function(){ tip.style.display = "none"; g.innerHTML = ""; });
+    }
+    $("chartTf").querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){
+        chartData.range = b.getAttribute("data-tf");
+        $("chartTf").querySelectorAll("button").forEach(function(x){ x.classList.toggle("active", x === b); });
+        renderChart();
+      });
+    });
+    $("chartTypeBtn").addEventListener("click", function(){
+      chartData.type = chartData.type === "candles" ? "line" : "candles";
+      $("chartTypeLbl").textContent = chartData.type === "candles" ? "Candles" : "Line";
+      renderChart();
+    });
+    $("chartReloadBtn").addEventListener("click", function(){
+      if(!detailMint) return;
+      delete chartCache[state.network + ":" + detailMint];
+      loadTokenChart(detailMint, true);
+    });
+    $("detailCopyBtn").addEventListener("click", function(){
+      if(detailMint) copyText(detailMint, "Contract address copied");
+    });
+
+    /* ================= Token page: holders count =================
+       Counted live from the token program: every token account for this
+       mint holding more than zero, minus the curve's own vault. */
+    var holdersCache = {}, holdersBusy = {};
+    async function loadTokenHolders(mint){
+      var el = $("dStatHolders"); if(!el || !mint) return;
+      var key = state.network + ":" + mint;
+      if(holdersCache[key] != null){ el.textContent = fmtNum(holdersCache[key]); return; }
+      el.textContent = "…";
+      if(holdersBusy[key]) return;
+      holdersBusy[key] = true;
+      var total = 0, answered = false, curveStr = null;
+      try { var S2 = stack(); if(S2) curveStr = bcCurvePda(S2.web3, new S2.web3.PublicKey(mint)).toBase58(); } catch(e){}
+      var progs = [TOKEN_PROG, "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"];
+      for(var pi = 0; pi < progs.length; pi++){
+        var j = await rpc("getProgramAccounts", [progs[pi], { encoding: "base64", filters: [{ dataSize: 165 }, { memcmp: { offset: 0, bytes: mint } }] }]).catch(function(){ return null; });
+        if(j && Array.isArray(j.result)){
+          answered = true;
+          j.result.forEach(function(a){
+            try {
+              var bytes = b64ToBytes(a.account.data[0]);
+              if(curveStr){
+                var owner = new (stack().web3.PublicKey)(bytes.slice(32, 64)).toBase58();
+                if(owner === curveStr) return;
+              }
+              var amt = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigUint64(64, true);
+              if(amt > 0n) total++;
+            } catch(e){}
+          });
+        }
+      }
+      holdersBusy[key] = false;
+      if(!answered){ if(detailMint === mint) el.textContent = "—"; return; }
+      holdersCache[key] = total;
+      if(detailMint === mint) el.textContent = fmtNum(total);
+    }
+
+    /* ================= Token page: trade panel =================
+       A compact mirror of the bonding-curve panel below it — same side,
+       amount, slippage, quote and trade button state, so both panels
+       always agree and there is exactly one trade path. */
+    var tpSellBal = { mint: null, bal: null };
+    var tpQuickSide = null;
+    function syncTpPanel(){
+      if(!$("tpTradeBtn")) return;
+      var buy = state.bcSide === "buy";
+      $("tpTabBuy").classList.toggle("active", buy); $("tpTabBuy").classList.toggle("buy", buy);
+      $("tpTabSell").classList.toggle("active", !buy); $("tpTabSell").classList.toggle("sell", !buy);
+      $("tpAmtLbl").textContent = buy ? "You pay" : "You sell";
+      $("tpAmtUnit").textContent = $("bcAmtUnit").textContent;
+      if(document.activeElement !== $("tpAmt") && $("tpAmt").value !== $("bcAmt").value) $("tpAmt").value = $("bcAmt").value;
+      $("tpQuote").textContent = $("bcQuoteLine").textContent;
+      $("tpSlipLbl").textContent = "Slippage " + (state.bcSlippage / 100) + "%";
+      renderTpQuick();
+      var btn = $("tpTradeBtn"), bcBtn = $("bcTradeBtn");
+      if(!state.wallet){
+        btn.className = "action-btn connect"; btn.disabled = false; btn.textContent = "Connect wallet";
+        $("tpNote").style.display = "";
+      } else {
+        $("tpNote").style.display = "none";
+        btn.className = bcBtn.className; btn.disabled = bcBtn.disabled; btn.textContent = bcBtn.textContent;
+      }
+      var st = $("tpStatus"), bs = $("bcStatus");
+      if(st && bs && st.innerHTML !== bs.innerHTML) st.innerHTML = bs.innerHTML;
+    }
+    function renderTpQuick(){
+      var q = $("tpQuick"); if(!q) return;
+      var side = state.bcSide;
+      if(tpQuickSide === side && q.children.length) return;
+      tpQuickSide = side;
+      q.innerHTML = "";
+      var items = side === "buy" ? ["0.1", "0.25", "0.5", "1", "Max"] : ["25%", "50%", "75%", "100%"];
+      items.forEach(function(lbl){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.textContent = (side === "buy" && lbl !== "Max") ? lbl + " SOL" : lbl;
+        b.addEventListener("click", function(){ tpQuickPick(lbl); });
+        q.appendChild(b);
+      });
+    }
+    function tpSetAmount(v){
+      $("bcAmt").value = v;
+      $("bcAmt").dispatchEvent(new Event("input", { bubbles: true }));
+      syncTpPanel();
+    }
+    function tpQuickPick(lbl){
+      if(state.bcSide === "buy"){
+        if(lbl === "Max"){
+          if(state.solBal == null){ toast("Wallet balance is still loading — try again in a second."); return; }
+          var m = Math.max(0, state.solBal - 0.012);
+          tpSetAmount(m > 0 ? String(Math.floor(m * 10000) / 10000) : "0");
+        } else tpSetAmount(lbl);
+        return;
+      }
+      if(!state.wallet){ openWalletModal(); return; }
+      if(!detailMint) return;
+      var pct = parseInt(lbl, 10) / 100;
+      if(tpSellBal.mint === detailMint && tpSellBal.bal != null){
+        if(tpSellBal.bal <= 0){ toast("You don't hold this token."); return; }
+        tpSetAmount(String(Math.floor(tpSellBal.bal * pct * 10000) / 10000));
+        return;
+      }
+      rpc("getTokenAccountsByOwner", [state.wallet.pubkey, { mint: detailMint }, { encoding: "jsonParsed" }]).then(function(j){
+        var total = 0;
+        ((j && j.result && j.result.value) || []).forEach(function(a){
+          total += parseFloat(a.account.data.parsed.info.tokenAmount.uiAmountString || "0");
+        });
+        tpSellBal = { mint: detailMint, bal: total };
+        if(total <= 0){ toast("You don't hold this token."); return; }
+        tpSetAmount(String(Math.floor(total * pct * 10000) / 10000));
+      });
+    }
+    $("tpTabBuy").addEventListener("click", function(){ bcSetSide("buy"); syncTpPanel(); });
+    $("tpTabSell").addEventListener("click", function(){ bcSetSide("sell"); syncTpPanel(); });
+    $("bcTabBuy").addEventListener("click", function(){ syncTpPanel(); });
+    $("bcTabSell").addEventListener("click", function(){ syncTpPanel(); });
+    $("tpAmt").addEventListener("input", function(){
+      $("bcAmt").value = $("tpAmt").value;
+      $("bcAmt").dispatchEvent(new Event("input", { bubbles: true }));
+      $("tpQuote").textContent = $("bcQuoteLine").textContent;
+      $("tpAmtUnit").textContent = $("bcAmtUnit").textContent;
+    });
+    $("tpSlipBtn").addEventListener("click", function(){
+      var opts = [50, 100, 200, 500];
+      var nx = opts.indexOf(state.bcSlippage) >= 0 ? opts[(opts.indexOf(state.bcSlippage) + 1) % opts.length] : 100;
+      state.bcSlippage = nx;
+      $("bcSlipRow").querySelectorAll(".chip").forEach(function(x){ x.classList.toggle("active", parseInt(x.getAttribute("data-bslip"), 10) === nx); });
+      updateBcQuote(); syncTpPanel();
+    });
+    $("bcSlipRow").querySelectorAll(".chip").forEach(function(ch){ ch.addEventListener("click", function(){ syncTpPanel(); }); });
+    $("tpTradeBtn").addEventListener("click", function(){
+      if(!state.wallet){ openWalletModal(); return; }
+      $("bcTradeBtn").click();
+      setTimeout(syncTpPanel, 400);
+    });
+    if(window.MutationObserver){
+      ["bcQuoteLine", "bcStatus", "bcTradeBtn", "walletBtn", "bcAmtUnit"].forEach(function(id){
+        var el = $(id); if(!el) return;
+        new MutationObserver(function(){ syncTpPanel(); }).observe(el, { childList: true, characterData: true, attributes: true, attributeFilter: ["disabled", "class"] });
+      });
+    }
+    syncTpPanel();
+
     /* ================= Bonding curve: token panel ================= */
     async function loadBcCurve(mintStr){
       var S = stack(); if(!S){ toast("Solana libraries are still loading."); return; }
@@ -5678,6 +6278,7 @@
       $("bcBody").style.display = "";
       $("bcLoadHint").textContent = "Live from chain.";
       renderBcPanel();
+      loadTokenChart(c.mintStr);
       refreshBondingProgramState();
       loadDetailMeta(mintPk, c);
     }
@@ -5706,9 +6307,7 @@
           mcapSol: Number(bcMcapLamports(c.vsol, c.vtok)) / 1e9
         };
         renderDetailHeader(entry);
-        var img = bcMetaImage(entry.uri);
-        if(img && typeof img !== "string") img.then(function(u){ if(u) setCurveImg(mintStr, u); });
-        else if(img) setCurveImg(mintStr, img);
+        resolveCurveImg(mintStr, entry.uri);
         var mintInfo = await conn.getAccountInfo(mintPk, "confirmed").catch(function(){ return null; });
         if(detailMint !== mintStr || !mintInfo || mintInfo.data.length < 45) return;
         var dv = new DataView(mintInfo.data.buffer, mintInfo.data.byteOffset, mintInfo.data.byteLength);
@@ -5751,6 +6350,8 @@
         $("detailPrice").textContent = priceTxt;
         $("dStatPrice").textContent = priceTxt;
         $("dStatMcap").textContent = fmtTokens(mcapSol, 2) + " SOL";
+        $("dStatLiquidity").textContent = fmtTokens(Number(c.realSol) / 1e9, 2) + " SOL";
+        chartOnCurveUpdate(mcapSol);
         var dst = detailStatus(c);
         $("dStatStatus").textContent = dst.label;
         $("dStatVenue").textContent = dst.venue;
@@ -5761,6 +6362,7 @@
       }
       updateBcQuote();
       updateBcTradeBtn();
+      syncTpPanel();
     }
     function updateBcTradeBtn(){
       var btn = $("bcTradeBtn"); if(!btn) return;
