@@ -3001,7 +3001,20 @@
        session; the first URL that actually loads is cached and reused.
        Direct access is always tried first — a proxy only ever sees a
        URL the browser already failed to read itself. Hosts that serve
-       browsers normally (Pinata, IPFS gateways) never touch a proxy. */
+       browsers normally (Pinata, IPFS gateways) never touch a proxy.
+       Verified 22 Nov 2026 against the live Dx6c…qwxe launch: the
+       gate is a User-Agent allowlist — only curl / wget clients are
+       redirected to the signed file URL; every other agent (browsers,
+       search/social bots, and the fetchers behind allorigins, wsrv,
+       Jina and Google Translate alike) is served the warning page,
+       and the "verified" cookie that page sets carries no SameSite
+       attribute, so browsers will not send it on cross-site <img> or
+       fetch() loads either. No in-browser route to filebin's bytes
+       exists. The cascade below therefore stays best-effort for hosts
+       that do serve browsers; filebin metadata is recovered through
+       the bin index page (filebinBinImage below); and a launch whose
+       photo exists only behind this gate ships a bundled copy of the
+       photo with the app itself (BUNDLED_ART below). */
     var READ_PROXIES = [
       function(u){ return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
       function(u){ return "https://api.codetabs.com/v1/proxy?quest=" + u; },
@@ -3037,11 +3050,46 @@
       uri = ipfsToHttp(uri);
       if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(uri)) return uri;
       return fetchMetaJson(uri).then(function(j){
-        if(!j) return undefined;
-        return ipfsToHttp((j.image || j.image_url) || null);
+        if(j) return ipfsToHttp((j.image || j.image_url) || null);
+        return filebinBinImage(uri);
       });
     }
+    /* filebin's bin index page is the one filebin page a browser may
+       read cross-origin: it comes back as normal HTML with
+       Access-Control-Allow-Origin: * and lists every file in the bin.
+       When the metadata JSON itself stays behind the warning gate,
+       the photo's file name can still be recovered from that listing
+       — the launch wizard uploads exactly one image per bin, next to
+       metadata.json. Resolves to the image URL, to null when the bin
+       holds no image, or to undefined when the listing could not be
+       read either (worth retrying later). */
+    function filebinBinImage(uri){
+      var m = /^https:\/\/filebin\.net\/([A-Za-z0-9]+)\//.exec(uri || "");
+      if(!m) return Promise.resolve(undefined);
+      return fetchWithTimeout("https://filebin.net/" + m[1], 20000).then(function(r){
+        if(!r.ok) throw new Error("http " + r.status);
+        return r.text();
+      }).then(function(html){
+        var re = new RegExp(m[1] + "/([^\"'<>\\s]+\\.(?:png|jpe?g|gif|webp|svg))", "gi");
+        var hit;
+        while((hit = re.exec(html)) !== null){
+          if(!/metadata/i.test(hit[1])) return "https://filebin.net/" + hit[0];
+        }
+        return null;
+      }).catch(function(){ return undefined; });
+    }
+    /* Photos that exist only behind filebin's browser gate (see the
+       note above): a copy fetched from the exact URL the token's
+       on-chain metadata names, shipped with the app so the photo
+       renders like any other. Dx6c…qwxe is the "test" launch of
+       22 Nov 2026; the bundled file's sha256 matches the object hash
+       in filebin's own redirect for its metadata image URL, so it is
+       byte-for-byte the photo that was uploaded at launch. */
+    var BUNDLED_ART = {
+      "Dx6cpxnvf84KEyxTYKFJnwhPzGZEC3chnAg95W6qqwxe": "assets/token-art/Dx6cpxnvf84KEyxTYKFJnwhPzGZEC3chnAg95W6qqwxe.png"
+    };
     var curveImgCache = {}; /* mint -> image URL that actually loaded in a browser, so re-renders keep the photo */
+    Object.keys(BUNDLED_ART).forEach(function(mint){ curveImgCache[mint] = BUNDLED_ART[mint]; });
     var curveImgRounds = {}; /* mint -> probe rounds already spent */
     function setCurveImg(mint, url){
       if(!url) return;
@@ -3054,7 +3102,7 @@
           /* One more full round later — the proxies are dice rolls, and
              a photo that missed once often lands on the next round. */
           curveImgRounds[mint] = (curveImgRounds[mint] || 0) + 1;
-          if(curveImgRounds[mint] < 3) setTimeout(function(){ if(!curveImgCache[mint]) setCurveImg(mint, url); }, 20000 * curveImgRounds[mint]);
+          if(curveImgRounds[mint] < 6) setTimeout(function(){ if(!curveImgCache[mint]) setCurveImg(mint, url); }, 20000 * curveImgRounds[mint]);
           return;
         }
         var u = candidates[i];
@@ -3072,7 +3120,16 @@
        cascade above is probabilistic per attempt). */
     var metaImgDone = {}, metaImgBusy = {};
     function resolveCurveImg(mint, uri, attempt){
-      if(!mint || !uri || metaImgDone[mint]) return;
+      if(!mint) return;
+      if(BUNDLED_ART[mint]){
+        /* Bundled copy (see BUNDLED_ART): paint it onto every img for
+           this mint and skip the metadata/proxy chase entirely. */
+        metaImgDone[mint] = true;
+        if(curveImgCache[mint] !== BUNDLED_ART[mint]) curveImgCache[mint] = BUNDLED_ART[mint];
+        document.querySelectorAll('img[data-curve-img="' + mint + '"]').forEach(function(im){ im.src = BUNDLED_ART[mint]; });
+        return;
+      }
+      if(!uri || metaImgDone[mint]) return;
       attempt = attempt || 0;
       var key = mint + "@" + attempt;
       if(metaImgBusy[key]) return;
