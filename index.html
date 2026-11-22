@@ -240,6 +240,14 @@
         #statsRow .stat .lbl{font-size:11.5px}
         #view-explore .tabs{margin-bottom:18px}
         #view-explore .controls{margin-bottom:16px}
+        /* With no launches to trend, the placeholder block (label + dashed
+           circle + caption) is ~130px of vertical space a phone cannot
+           spare: hiding it in that state — and tightening the empty-state
+           card — keeps the card's Launch / Retry buttons in the first
+           screenful, above the fixed bottom tab bar, instead of behind it. */
+        .trending-block.is-empty{display:none}
+        .empty{margin-top:8px;padding:22px 18px}
+        .empty p{margin-bottom:12px}
       }
 
       /* ---------- Tabs & controls ---------- */
@@ -1024,6 +1032,7 @@
            must land clear of the fixed bar, not underneath it. */
         html{scroll-padding-bottom:calc(92px + env(safe-area-inset-bottom))}
         *{scroll-margin-bottom:calc(92px + env(safe-area-inset-bottom))}
+        .empty .btn{scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom))}
       }
     </style>
   </head>
@@ -1805,6 +1814,11 @@
                   <div class="err" id="imgErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:6px"></div>
                 </div>
               </div>
+            </div>
+            <div class="field">
+              <label for="inPinataJwt">Pinata JWT <span style="color:var(--faint);font-weight:600">(optional — permanent image hosting)</span></label>
+              <input type="password" id="inPinataJwt" placeholder="Paste a Pinata JWT for IPFS hosting" autocomplete="off" />
+              <div class="hint">With a free Pinata account's JWT, the image + metadata pin to IPFS permanently. Without it, uploads use a temporary free host whose files expire after ~6 days. The JWT stays in this tab's memory only and is sent only to Pinata.</div>
             </div>
             <div class="field">
               <label for="inDesc">Description</label>
@@ -2836,6 +2850,23 @@
     var exploreCurvesBusy = false;
     var exploreScanFailed = false; /* the last scan got no answer from any endpoint */
     var exploreScanAttempts = 0;
+    var exploreRetryTimer = null;
+    /* A failed scan keeps retrying with capped backoff until one scan
+       actually succeeds (or the network changes). The old loop gave up
+       after 4 tries (~50 s), so a rate-limit window at page load left
+       launched tokens missing until a manual retry or reload. */
+    function scheduleExploreRetry(){
+      if(exploreRetryTimer) return;
+      exploreScanAttempts++;
+      var delay = Math.min(5000 * exploreScanAttempts, 30000);
+      exploreRetryTimer = setTimeout(function(){
+        exploreRetryTimer = null;
+        if(exploreCurvesNet !== state.network && !exploreCurvesBusy) loadExploreCurves();
+      }, delay);
+    }
+    function clearExploreRetry(){
+      if(exploreRetryTimer){ clearTimeout(exploreRetryTimer); exploreRetryTimer = null; }
+    }
 
     function bcParseMetadata(data){
       /* Metaplex metadata: key(1) updateAuthority(32) mint(32), then borsh
@@ -2944,10 +2975,11 @@
       var sj = await rpc("getSignaturesForAddress", [BONDING_CURVE_PROGRAM_ID, { limit: 100 }]).catch(function(){ return null; });
       if(!sj || sj.error || !Array.isArray(sj.result)) return null;
       var sigs = sj.result.filter(function(s){ return !s.err; }).slice(0, 60);
-      var curvePdas = {}, times = {};
+      var curvePdas = {}, times = {}, txFailed = false;
       for(var i = 0; i < sigs.length; i++){
         var tj = await rpc("getTransaction", [sigs[i].signature, { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" }]).catch(function(){ return null; });
-        var res = tj && tj.result;
+        if(!tj){ txFailed = true; continue; }
+        var res = tj.result;
         if(!res || !res.transaction || !res.transaction.message) continue;
         var keys = (res.transaction.message.accountKeys || []).slice();
         if(res.meta && res.meta.loadedAddresses) keys = keys.concat(res.meta.loadedAddresses.writable || [], res.meta.loadedAddresses.readonly || []);
@@ -2967,6 +2999,10 @@
           });
         });
       }
+      /* One unread transaction makes the history incomplete — a
+         create_curve could be hiding in exactly that transaction, so an
+         incomplete walk is a FAILED scan (null), never a partial list. */
+      if(txFailed) return null;
       return { pdas: Object.keys(curvePdas), times: times };
     }
     async function fetchCurvesViaSignatures(){
@@ -2975,12 +3011,19 @@
         if(!scan) return null;
         Object.keys(scan.times).forEach(function(k){ curveTimes[k] = scan.times[k]; });
         curveTimesNet = state.network;
-        var out = [];
+        var out = [], readFailed = false;
         for(var j = 0; j < scan.pdas.length; j++){
           var aj = await rpc("getAccountInfo", [scan.pdas[j], { encoding: "base64" }]).catch(function(){ return null; });
-          var val = aj && aj.result && aj.result.value;
+          if(!aj){ readFailed = true; continue; }
+          var val = aj.result && aj.result.value;
           if(val && val.data && val.data[0]) out.push({ pubkey: scan.pdas[j], account: { data: val.data } });
         }
+        /* A discovered Curve whose account read failed on every endpoint
+           is a failed scan, not a missing token — returning the partial
+           list here is what made launched tokens disappear from Explore
+           whenever the RPC rate-limited mid-scan. (An account that reads
+           back as genuinely absent — value null — is skipped as before.) */
+        if(readFailed) return null;
         return out;
       } catch(e){ return null; }
     }
@@ -3023,19 +3066,17 @@
         var accounts = await fetchCurveAccounts();
         if(!accounts){
           /* No endpoint answered. Do NOT mark the network as scanned —
-             show the failure honestly and retry with backoff. */
+             show the failure honestly and keep retrying with backoff. */
           exploreScanFailed = true;
           exploreCurvesBusy = false;
           renderCurveRows();
           renderLaunched();
-          if(exploreScanAttempts < 4){
-            exploreScanAttempts++;
-            setTimeout(function(){ if(exploreCurvesNet !== state.network && !exploreCurvesBusy) loadExploreCurves(); }, 5000 * exploreScanAttempts);
-          }
+          scheduleExploreRetry();
           return;
         }
         exploreScanFailed = false;
         exploreScanAttempts = 0;
+        clearExploreRetry();
         var entries = [];
         accounts.forEach(function(a){
           var c = bcParseCurve(b64ToBytes(a.account.data[0]));
@@ -3044,12 +3085,17 @@
           entries.push(c);
         });
         if(entries.length){
-          var conn = getConnection();
           var w3 = stack().web3;
-          var pdas = entries.map(function(c){ return bcMetadataPda(w3, new w3.PublicKey(c.mint)); });
-          var infos = await conn.getMultipleAccountsInfo(pdas, "confirmed").catch(function(){ return null; });
+          var pdaStrs = entries.map(function(c){ return bcMetadataPda(w3, new w3.PublicKey(c.mint)).toBase58(); });
+          /* Metadata reads go through the same failover rpc() as the rest
+             of the scan — the web3 Connection is bound to the primary
+             endpoint alone, so a rate-limit burst there used to strip
+             every token's name and photo even when the scan itself won. */
+          var mj = await rpc("getMultipleAccounts", [pdaStrs, { encoding: "base64", commitment: "confirmed" }]).catch(function(){ return null; });
+          var infos = (mj && mj.result && mj.result.value) || null;
           entries.forEach(function(c, i){
-            var meta = infos && infos[i] ? bcParseMetadata(infos[i].data) : null;
+            var info = infos && infos[i];
+            var meta = (info && info.data && info.data[0]) ? bcParseMetadata(b64ToBytes(info.data[0])) : null;
             c.name = (meta && meta.name) || "Unknown token";
             c.sym = (meta && meta.sym) || truncAddr(c.mint);
             c.uri = meta ? meta.uri : "";
@@ -3080,6 +3126,7 @@
         exploreScanFailed = true;
         renderCurveRows();
         renderLaunched();
+        scheduleExploreRetry();
       }
       exploreCurvesBusy = false;
     }
@@ -3177,11 +3224,18 @@
       if(!box || !cap) return;
       var top = exploreCurves.slice().sort(function(a, b){ return b.mcapSol - a.mcapSol; }).slice(0, 5);
       box.innerHTML = "";
+      var block = $("trendingBlock");
       if(!top.length){
         box.innerHTML = '<span class="tc tc-empty"><img src="assets/logo-sky.png" alt="" /></span>';
         cap.textContent = exploreScanFailed ? "Couldn't load launches" : "No launches yet";
+        /* On phones the empty placeholder block is hidden (see the
+           max-width:680px rules): it carries no information beyond the
+           caption, and its ~130px pushed the empty-state card's buttons
+           down behind the fixed bottom tab bar. */
+        if(block) block.classList.add("is-empty");
         return;
       }
+      if(block) block.classList.remove("is-empty");
       cap.textContent = top.length > 1 ? "Top " + top.length + " by market cap" : "Top by market cap";
       /* Fan layout: #1 sits largest in the middle, the rest alternate out
          to the sides, smaller and further back. */
@@ -3262,7 +3316,7 @@
     }
     $("searchInput").addEventListener("input", applyFilters);
     $("sortSel").addEventListener("change", function(){ renderCurveRows(); });
-    $("exploreRetryBtn").addEventListener("click", function(){ exploreScanAttempts = 0; exploreScanFailed = false; loadExploreCurves(); });
+    $("exploreRetryBtn").addEventListener("click", function(){ exploreScanAttempts = 0; exploreScanFailed = false; clearExploreRetry(); loadExploreCurves(); });
     $("viewTableBtn").addEventListener("click", function(){ setViewMode("table"); });
     $("viewGridBtn").addEventListener("click", function(){ setViewMode("grid"); });
     function setViewMode(m){
@@ -3298,7 +3352,7 @@
       buildValidatorOptions();
       syncNetworkUI();
       state.bondingLive = null; state.bondingLiveNet = null; state.bc = null;
-      exploreCurves = []; exploreCurvesNet = null; exploreScanFailed = false; exploreScanAttempts = 0; curveTimes = {}; curveTimesNet = null; renderCurveRows(); loadExploreCurves();
+      exploreCurves = []; exploreCurvesNet = null; exploreScanFailed = false; exploreScanAttempts = 0; clearExploreRetry(); curveTimes = {}; curveTimesNet = null; renderCurveRows(); loadExploreCurves();
       refreshBondingProgramState();
       if(state.wallet) loadBalances();
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
@@ -3854,10 +3908,34 @@
       if($("view-portfolio").classList.contains("active")) loadPortfolio();
       if($("view-stake").classList.contains("active")) loadStakeView();
     }
-    function rpc(method, params){
-      return fetch(NETWORKS[state.network].rpc, {method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({jsonrpc:"2.0", id:1, method:method, params:params})})
-        .then(function(r){ return r.json(); });
+    /* Plain JSON-RPC with endpoint failover. Every read used to go to the
+       primary endpoint only (publicnode's shared RPC), which rate-limits
+       browsers in bursts (HTTP 429) — and a 429 in the middle of the
+       Explore scan silently dropped pieces of the read (one transaction
+       here, one Curve account there), after which the partial result was
+       cached as final. That is how already-launched tokens kept vanishing
+       from Explore. A call now walks the network's endpoint chain and
+       only a response carrying a real result counts; if every endpoint
+       fails, the call resolves null so callers treat the read as failed
+       (and retryable), never as empty. */
+    function rpcEndpoints(){
+      var n = NETWORKS[state.network];
+      var eps = [n.rpc, n.rpcFallback];
+      if(state.network === "mainnet") eps.push("https://solana-mainnet.g.alchemy.com/v2/demo");
+      return eps.filter(function(e, i){ return e && eps.indexOf(e) === i; });
+    }
+    async function rpc(method, params){
+      var eps = rpcEndpoints();
+      var body = JSON.stringify({jsonrpc:"2.0", id:1, method:method, params:params});
+      for(var i = 0; i < eps.length; i++){
+        try {
+          var r = await fetch(eps[i], {method:"POST", headers:{"Content-Type":"application/json"}, body: body});
+          if(!r.ok) continue;
+          var j = await r.json().catch(function(){ return null; });
+          if(j && !j.error && j.result !== undefined) return j;
+        } catch(e){ /* endpoint unreachable — try the next one */ }
+      }
+      return null;
     }
     function loadBalances(){
       if(!state.wallet) return;
@@ -5281,19 +5359,30 @@
        launch time the wizard's image and a Metaplex-style metadata JSON
        (name, symbol, description, image, links) are uploaded from the
        browser and the JSON's hosted URL becomes the create_curve uri.
-       Host chain — every host is anonymous, needs no account or API key,
-       and answers browser CORS requests; each attempt is time-boxed and
-       the next host is tried automatically when one fails:
-         1. pump.fun IPFS (POST pump.fun/api/ipfs) — uploads the image AND
-            the metadata JSON in one call and returns an ipfs:// metadata
-            URI. Built for exactly this (Solana token metadata), pinned
-            permanently.
-         2. uguu.se — generic file host; image first, then the metadata
-            JSON as a second upload.
-         3. telegra.ph — image-only host; if it takes the image, the
-            metadata JSON still goes to uguu.se.
-       (catbox.moe was the previous single host — it went unreachable and
-       launches lost their photos, so it is gone.)
+       Host chain — each attempt is time-boxed and the next host is tried
+       automatically when one fails:
+         1. Pinata IPFS — only when the user pasted their own Pinata JWT
+            in step 1 (kept in this tab's memory, never saved). Image via
+            pinFileToIPFS, metadata via pinJSONToIPFS; both come back as
+            permanent ipfs:// URIs. This is the documented successor to
+            pump.fun's retired upload endpoint.
+         2. filebin.net — anonymous, no key. Raw-body POST to a random
+            per-launch bin; the file URL serves the bytes directly and
+            every response (upload, file GET, even the storage redirect)
+            carries CORS headers a browser accepts. BUT filebin is a
+            temporary host: bins are deleted after ~6 days, so when this
+            path is used the status box says so out loud — a photo that
+            must live forever needs the Pinata path above.
+       Why the old hosts are gone (all re-verified 22 Nov 2026):
+         - pump.fun /api/ipfs is retired: it answers HTTP 500 to every
+           upload, whatever the payload, and pump.fun integration docs
+           now say the endpoint "is no longer supported" (they point
+           integrators at Pinata with their own key).
+         - uguu.se and telegra.ph accept uploads server-side but send no
+           CORS headers, so a browser fetch() can never read their
+           answers — every attempt dies as "Failed to fetch" even though
+           the hosts themselves are up. (catbox.moe, the host before
+           them, was simply unreachable.)
        Last-resort fallback when every host fails: a data-URI metadata
        JSON — but only when it fits. Metaplex caps the on-chain URI at
        200 characters, so a data URI with an embedded image (thousands of
@@ -5308,7 +5397,7 @@
        a FAILED upload is never cached, so pressing Launch again (or the
        wizard's “Test upload” button) retries the hosts. */
     function wizMetaKeyNow(){
-      return [$("inName").value.trim(), $("inTicker").value.trim(), $("inDesc").value.trim(), $("inWebsite").value.trim(), $("inX").value.trim(), $("inTelegram").value.trim(), wizImageFile ? (wizImageFile.name + ":" + wizImageFile.size) : "noimg"].join("|");
+      return [$("inName").value.trim(), $("inTicker").value.trim(), $("inDesc").value.trim(), $("inWebsite").value.trim(), $("inX").value.trim(), $("inTelegram").value.trim(), wizImageFile ? (wizImageFile.name + ":" + wizImageFile.size) : "noimg", pinataJwt() ? "pinata" : "nopinata"].join("|");
     }
     function fetchTimeout(url, opts, ms){
       var ctl = ("AbortController" in window) ? new AbortController() : null;
@@ -5316,49 +5405,39 @@
       if(ctl){ opts = opts || {}; opts.signal = ctl.signal; timer = setTimeout(function(){ try { ctl.abort(); } catch(e){} }, ms || 30000); }
       return fetch(url, opts).then(function(r){ if(timer) clearTimeout(timer); return r; }, function(e){ if(timer) clearTimeout(timer); throw e; });
     }
-    /* pump.fun IPFS: one multipart POST carries the image file plus the
-       metadata fields; the JSON answer's metadataUri is ready to put
-       on-chain as-is. */
-    async function pumpfunIpfsUpload(meta){
-      var fd = new FormData();
-      fd.append("file", wizImageFile, wizImageFile.name || "token-image");
-      fd.append("name", meta.name);
-      fd.append("symbol", meta.symbol);
-      fd.append("description", meta.description || "");
-      fd.append("showName", "true");
-      if(meta.external_url) fd.append("website", meta.external_url);
-      if(meta.extensions && meta.extensions.twitter) fd.append("twitter", meta.extensions.twitter);
-      if(meta.extensions && meta.extensions.telegram) fd.append("telegram", meta.extensions.telegram);
-      var r = await fetchTimeout("https://pump.fun/api/ipfs", { method: "POST", body: fd }, 45000);
-      var j = null; try { j = await r.json(); } catch(e){}
-      if(!r.ok || !j || !j.metadataUri) throw new Error("host answered HTTP " + r.status);
-      return j.metadataUri;
-    }
-    async function uguuUpload(blob, filename){
-      var fd = new FormData();
-      fd.append("files[]", blob, filename);
-      var r = await fetchTimeout("https://uguu.se/upload.php", { method: "POST", body: fd }, 30000);
-      var j = null; try { j = await r.json(); } catch(e){}
-      var url = j && j.files && j.files[0] && j.files[0].url;
-      if(!r.ok || !url) throw new Error("host answered HTTP " + r.status);
-      return url;
-    }
-    async function telegraphUpload(blob, filename){
+    /* Pinata IPFS, with the user's own JWT from step 1 (memory only —
+       read from the input at upload time, never stored anywhere). */
+    function pinataJwt(){ var el = $("inPinataJwt"); return el ? el.value.trim() : ""; }
+    async function pinataUploadFile(blob, filename){
       var fd = new FormData();
       fd.append("file", blob, filename);
-      var r = await fetchTimeout("https://telegra.ph/upload", { method: "POST", body: fd }, 30000);
+      var r = await fetchTimeout("https://api.pinata.cloud/pinning/pinFileToIPFS", { method: "POST", headers: { "Authorization": "Bearer " + pinataJwt() }, body: fd }, 45000);
       var j = null; try { j = await r.json(); } catch(e){}
-      var src = j && j[0] && j[0].src;
-      if(!r.ok || !src) throw new Error("host answered HTTP " + r.status);
-      return "https://telegra.ph" + src;
+      if(!r.ok || !j || !j.IpfsHash) throw new Error("Pinata answered HTTP " + r.status);
+      return "ipfs://" + j.IpfsHash;
     }
-    /* Generic file chain for one blob: uguu.se for anything, telegra.ph
-       as an extra chance for images only (it rejects other types). */
-    async function hostedUpload(blob, filename, isImage){
-      var errs = [];
-      try { return await uguuUpload(blob, filename); } catch(e){ errs.push("uguu.se: " + shortErr(e)); }
-      if(isImage){ try { return await telegraphUpload(blob, filename); } catch(e){ errs.push("telegra.ph: " + shortErr(e)); } }
-      throw new Error(errs.join(" · "));
+    async function pinataUploadJson(obj){
+      var r = await fetchTimeout("https://api.pinata.cloud/pinning/pinJSONToIPFS", { method: "POST", headers: { "Authorization": "Bearer " + pinataJwt(), "Content-Type": "application/json" }, body: JSON.stringify({ pinataContent: obj }) }, 45000);
+      var j = null; try { j = await r.json(); } catch(e){}
+      if(!r.ok || !j || !j.IpfsHash) throw new Error("Pinata answered HTTP " + r.status);
+      return "ipfs://" + j.IpfsHash;
+    }
+    /* filebin.net: one raw-body POST per file into a random per-launch
+       bin; the resulting URL serves the file bytes directly. */
+    function filebinBinId(){
+      var rand = "";
+      try { var a = new Uint8Array(6); crypto.getRandomValues(a); for(var i = 0; i < a.length; i++) rand += ("0" + a[i].toString(16)).slice(-2); }
+      catch(e){ rand = String(Math.random()).slice(2, 14); }
+      return "vp" + Date.now().toString(36) + rand;
+    }
+    function filebinName(name){
+      return String(name || "file").replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
+    }
+    async function filebinUpload(blob, filename, bin){
+      var url = "https://filebin.net/" + bin + "/" + filebinName(filename);
+      var r = await fetchTimeout(url, { method: "POST", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob }, 45000);
+      if(!r.ok) throw new Error("filebin answered HTTP " + r.status);
+      return url;
     }
     function dataUriFor(meta){
       try { return "data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(meta)))); }
@@ -5373,31 +5452,42 @@
       var ext = {}; if(xv) ext.twitter = xv; if(tg) ext.telegram = tg;
       if(Object.keys(ext).length) meta.extensions = ext;
       var uri = "";
+      var hasJwt = !!pinataJwt();
+      var metaBlob = function(){ return new Blob([JSON.stringify(meta)], { type: "application/json" }); };
       if(wizImageFile){
-        /* Host 1: pump.fun IPFS — image + metadata in a single upload. */
-        try {
-          statusLine(box, "Uploading token image + metadata to pump.fun IPFS…", "mut");
-          uri = await pumpfunIpfsUpload(meta);
-          statusLine(box, '<span class="st-ok">Image + metadata hosted on IPFS (pump.fun):</span> ' + esc(uri));
-        } catch(e1){
-          statusLine(box, "pump.fun IPFS unreachable (" + esc(shortErr(e1)) + ") — trying the next host…", "mut");
-          /* Hosts 2+3: host the image, then the metadata JSON. */
+        var imgName = wizImageFile.name || "token-image";
+        /* Host 1: Pinata IPFS — permanent, but only with the user's JWT. */
+        if(hasJwt){
           try {
+            statusLine(box, "Uploading token image + metadata to IPFS (Pinata)…", "mut");
+            meta.image = await pinataUploadFile(wizImageFile, imgName);
+            uri = await pinataUploadJson(meta);
+            statusLine(box, '<span class="st-ok">Image + metadata pinned on IPFS (Pinata):</span> ' + esc(uri));
+          } catch(e1){
+            statusLine(box, "Pinata upload failed (" + esc(shortErr(e1)) + ") — trying the next host…", "mut");
+            uri = "";
+          }
+        }
+        /* Host 2: filebin.net — anonymous; temporary (~6 days), said out loud. */
+        if(!uri){
+          try {
+            var bin = filebinBinId();
             statusLine(box, "Uploading token image…", "mut");
-            meta.image = await hostedUpload(wizImageFile, wizImageFile.name || "token-image", true);
+            meta.image = await filebinUpload(wizImageFile, imgName, bin);
             statusLine(box, "Image hosted: " + esc(meta.image), "mut");
             statusLine(box, "Uploading token metadata…", "mut");
-            uri = await uguuUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
-            statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri));
+            uri = await filebinUpload(metaBlob(), "metadata.json", bin);
+            statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri) + ' — heads up: filebin is a temporary host and deletes files after ~6 days, so this photo will stop loading then. For a permanent photo, add a Pinata JWT in step 1 (free Pinata account) and launch again.');
           } catch(e2){
-            statusLine(box, '<span class="st-err">Every image host failed (' + esc(shortErr(e2)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all. The upload is NOT cached: fix your connection (or turn a VPN off) and press Launch again to retry it, or use “Test upload” in step 1 first.');
+            statusLine(box, '<span class="st-err">Every upload host failed (' + esc(shortErr(e2)) + ').</span> Launching without a hosted photo — an embedded data-URI image would exceed Metaplex\'s 200-character URI limit and fail the create, so the token launches with no metadata URI instead of not launching at all. The upload is NOT cached: check your connection and press Launch again to retry it, or use “Test upload” in step 1 first.');
             uri = "";
           }
         }
       } else if(meta.description || meta.external_url || meta.extensions){
         try {
           statusLine(box, "Uploading token metadata…", "mut");
-          uri = await uguuUpload(new Blob([JSON.stringify(meta)], { type: "application/json" }), "metadata.json");
+          if(hasJwt) uri = await pinataUploadJson(meta);
+          else uri = await filebinUpload(metaBlob(), "metadata.json", filebinBinId());
           statusLine(box, '<span class="st-ok">Metadata live:</span> ' + esc(uri));
         } catch(e){
           var du = dataUriFor(meta);
@@ -5429,7 +5519,7 @@
         $("imgUpStatus").textContent = "✓ Upload works — metadata hosted at " + uri + " · Launch will reuse this upload.";
         toast("Upload OK — metadata hosted.");
       } else {
-        $("imgUpStatus").textContent = "✗ All hosts failed — check your connection / VPN and press Test upload again. Nothing was sent on-chain.";
+        $("imgUpStatus").textContent = "✗ Upload failed on every host — check your connection and press Test upload again, or add a Pinata JWT above for IPFS hosting. Nothing was sent on-chain.";
         toast("Upload failed on every host — try again.");
       }
       btn.disabled = false; btn.textContent = "Test upload";
