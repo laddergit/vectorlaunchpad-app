@@ -315,8 +315,8 @@
       .back-btn{background:none;border:0;color:var(--muted);font-weight:600;font-size:14px;display:inline-flex;gap:6px;align-items:center;padding:8px 4px;min-height:2.25rem}
       .back-btn:hover{color:var(--text)}
       .detail-head{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-top:6px}
-      .detail-head img.big{width:84px;height:84px;border-radius:20px;object-fit:cover;box-shadow:var(--shadow);background:var(--surface-3)}
-      .detail-head h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1}
+      .detail-head img.big{width:62px;height:62px;border-radius:15px;object-fit:cover;box-shadow:var(--shadow);background:var(--surface-3)}
+      .detail-head h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1}
       .detail-head .sym{color:var(--muted);font-weight:700;font-size:19px}
       .ca-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
       .ca-chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:5px 6px 5px 11px;font-size:12.5px;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -329,6 +329,33 @@
       .chg-chip.up{background:var(--green-bg);color:var(--green)}
       .chg-chip.down{background:var(--red-bg);color:var(--red)}
       .detail-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+      /* Token page stat strip — flat, Ascend-style: label over value with
+         thin dividers and no boxes. The old page boxed every stat AND
+         repeated price / market cap in two more panels further down. */
+      .dstats{display:flex;flex-wrap:wrap;margin:22px 0 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0}
+      .dstats .ds{padding:2px 28px 2px 0;margin-right:28px;border-right:1px solid var(--border)}
+      .dstats .ds:last-child{border-right:0;margin-right:0;padding-right:0}
+      .dstats .lbl{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px}
+      .dstats .val{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+      .dstats .sub{font-size:12px;color:var(--faint);margin-top:3px;font-weight:600}
+      .tp-col{position:sticky;top:118px;display:grid;gap:16px;align-content:start}
+      .tp-top{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+      .tp-top .bs-tabs{display:flex;background:none;border:0;padding:0;gap:5px;margin:0}
+      .tp-top .bs-tabs button{height:34px;padding:0 17px;border-radius:9px;font-size:14px;font-weight:800;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+      .tp-top .bs-tabs button.active.buy{background:var(--green);color:#fff;border-color:var(--green)}
+      .tp-top .bs-tabs button.active.sell{background:var(--red);color:#fff;border-color:var(--red)}
+      .tp-top .tp-slip{margin-left:auto}
+      .pos-body{font-size:13.5px;color:var(--muted);line-height:1.6}
+      .pos-body b{color:var(--text)}
+      .bc-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+      @media (max-width:1024px){
+        .tp-col{position:static;order:-1}
+        .dstats .ds{padding-right:18px;margin-right:18px}
+      }
+      @media (max-width:560px){
+        .dstats{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px}
+        .dstats .ds{border-right:0;margin-right:0;padding-right:0}
+      }
       .detail-grid{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:16px;align-items:start}
       .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
       .card h3{margin:0 0 12px;font-size:16px;font-weight:800;letter-spacing:-.01em}
@@ -371,7 +398,7 @@
       html[data-theme="dark"] .tech-grid .v a{color:#8fd4f7}
 
       /* ---------- Buy / sell panel ---------- */
-      .trade-panel{position:sticky;top:118px}
+      .trade-panel{position:static}
       .bs-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
       .bs-tabs button{border:0;border-radius:9px;height:40px;font-weight:800;font-size:15px;background:none;color:var(--muted)}
       .bs-tabs button.active.buy{background:var(--green);color:#fff}
@@ -1225,7 +1252,7 @@
       <section class="view" id="view-token">
         <button type="button" class="back-btn" data-nav="explore">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
-          Back to Explore
+          Explore
         </button>
 
         <div class="detail-head">
@@ -1249,20 +1276,19 @@
           </div>
         </div>
 
-        <div class="price-line">
-          <span class="price-big" id="detailPrice">—</span>
-          <span class="chg-chip" id="detailChip" style="background:var(--surface-3);color:var(--muted)">No token loaded</span>
-        </div>
+        <!-- Price / status keep hidden anchors: renderDetailHeader and
+             renderBcPanel still write them, but on screen the price now
+             lives ONLY in the stat strip below (it used to headline the
+             page here AND sit in the strip AND in the curve panel). -->
+        <span id="detailPrice" hidden></span><span id="detailChip" hidden></span>
+        <span id="dStatStatus" hidden></span><span id="dStatVenue" hidden></span><span id="dStatContract" hidden></span>
 
-        <div class="detail-stats">
-          <div class="stat"><div class="lbl">Price</div><div class="val num" id="dStatPrice">—</div><div class="sub">Per token, from the curve</div></div>
-          <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="dStatMcap">—</div><div class="sub">At the current curve price</div></div>
-          <div class="stat"><div class="lbl">Holders</div><div class="val num" id="dStatHolders">—</div><div class="sub">Wallets holding &gt; 0</div></div>
-          <div class="stat"><div class="lbl">Fee</div><div class="val num">1%</div><div class="sub">0.3% to the creator · 0.7% protocol</div></div>
-          <div class="stat"><div class="lbl">Liquidity</div><div class="val num" id="dStatLiquidity">—</div><div class="sub">SOL in the curve</div></div>
-          <div class="stat"><div class="lbl">Status</div><div class="val" style="font-size:19px" id="dStatStatus">—</div></div>
-          <div class="stat"><div class="lbl">Venue</div><div class="val" style="font-size:19px" id="dStatVenue">—</div></div>
-          <div class="stat"><div class="lbl">Contract</div><div class="val" style="font-size:19px" id="dStatContract">—</div><div class="sub" id="dStatContractSub">Mint address</div></div>
+        <div class="dstats">
+          <div class="ds"><div class="lbl">Price</div><div class="val num" id="dStatPriceUsd">—</div><div class="sub num" id="dStatPrice">Per token, from the curve</div></div>
+          <div class="ds"><div class="lbl">Market cap</div><div class="val num" id="dStatMcap">—</div><div class="sub">At the current curve price</div></div>
+          <div class="ds"><div class="lbl">Holders</div><div class="val num" id="dStatHolders">—</div><div class="sub">Wallets holding &gt; 0</div></div>
+          <div class="ds"><div class="lbl">Fee</div><div class="val num">1%</div><div class="sub">0.3% creator · 0.7% protocol</div></div>
+          <div class="ds"><div class="lbl">Liquidity</div><div class="val num" id="dStatLiquidity">—</div><div class="sub">SOL in the curve</div></div>
         </div>
 
         <div class="detail-grid">
@@ -1272,7 +1298,7 @@
                 <div>
                   <div class="chart-lbl">Market cap <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg></div>
                   <div class="chart-big"><span class="cv num" id="chartMcap">—</span><span class="chg-chip" id="chartChg" style="background:var(--surface-3);color:var(--muted)">—</span></div>
-                  <div class="chart-sub">In SOL, from trades in its own bonding-curve market</div>
+                  <div class="chart-sub">In dollars, from trades in its own bonding-curve market</div>
                 </div>
                 <div class="chart-tools">
                   <span class="seg tf-seg" id="chartTf" role="group" aria-label="Chart time range">
@@ -1299,50 +1325,51 @@
 
             <div class="card" id="bondingPanel">
               <h3>Bonding curve <span class="badge" id="bcBadge">Vector Pad program</span></h3>
-              <p class="note-line" style="margin:0 0 12px" id="bcIntro">Price from the curve. Graduates to Raydium at ~85 SOL.</p>
-              <div class="field" style="margin-bottom:12px">
-                <label for="bcMintInput">Token mint</label>
+              <p class="note-line" style="margin:0 0 12px" id="bcIntro">Price from the curve. Graduates to Raydium at ~85 SOL. Buying and selling happens in the trade panel — this card is the curve's live state.</p>
+              <div id="bcBody" style="display:none">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px"><span>Progress to graduation</span><span class="num" id="bcProgTxt">—</span></div>
+                <div class="curve-bar"><i id="bcProgBar" style="width:0%"></i></div>
+                <div class="hint" style="margin-top:8px" id="bcStateLine">—</div>
+                <div class="tech-grid" style="margin-top:12px">
+                  <div><div class="k">SOL in curve</div><div class="v num" id="bcRealSol">—</div></div>
+                  <div><div class="k">Tokens left</div><div class="v num" id="bcTokensLeft">—</div></div>
+                  <div><div class="k">Curve PDA</div><div class="v" id="bcCurvePda" style="font-size:12px">—</div></div>
+                  <div><div class="k">Creator</div><div class="v" id="bcCreator" style="font-size:12px">—</div></div>
+                  <div><div class="k">Creator fees accrued</div><div class="v num" id="bcCreatorFees">—</div></div>
+                  <div><div class="k">Protocol fees accrued</div><div class="v num" id="bcProtoFees">—</div></div>
+                </div>
+                <div class="bc-tools">
+                  <button type="button" class="btn btn-grad" id="bcGraduateBtn" style="height:42px;display:none">Graduate to Raydium pool</button>
+                  <button type="button" class="btn btn-ghost" id="bcClaimBtn" style="height:42px">Claim fees</button>
+                  <button type="button" class="btn btn-ghost" id="bcRefreshBtn" style="height:42px">Refresh curve</button>
+                </div>
+                <p class="note-line" id="bcMigratedNote" style="display:none"><b>Graduated</b> — trade on Swap. Pool <span id="bcPoolId" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></span></p>
+              </div>
+              <div class="field" style="margin-top:14px">
+                <label for="bcMintInput">Load another curve token</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <input type="text" id="bcMintInput" placeholder="Paste a mint launched in bonding mode" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 13px;font-size:14px;color:var(--text);font-family:ui-monospace,Menlo,monospace" />
                   <button type="button" class="btn btn-ghost" id="bcLoadBtn" style="height:42px">Load curve</button>
                 </div>
                 <div class="hint" id="bcLoadHint">Your launches appear here.</div>
               </div>
-              <div id="bcBody" style="display:none">
-                <div class="detail-stats" style="grid-template-columns:repeat(4,1fr);margin:6px 0 14px">
-                  <div class="stat"><div class="lbl">Price</div><div class="val num" id="bcPrice" style="font-size:19px">—</div><div class="sub" id="bcPriceSol">—</div></div>
-                  <div class="stat"><div class="lbl">Market cap</div><div class="val num" id="bcMcap" style="font-size:19px">—</div></div>
-                  <div class="stat"><div class="lbl">SOL in curve</div><div class="val num" id="bcRealSol" style="font-size:19px">—</div></div>
-                  <div class="stat"><div class="lbl">Tokens left</div><div class="val num" id="bcTokensLeft" style="font-size:19px">—</div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px"><span>Progress to graduation</span><span class="num" id="bcProgTxt">—</span></div>
-                <div class="curve-bar"><i id="bcProgBar" style="width:0%"></i></div>
-                <div class="hint" style="margin-top:8px" id="bcStateLine">—</div>
-                <div class="tech-grid" style="margin-top:12px">
-                  <div><div class="k">Curve PDA</div><div class="v" id="bcCurvePda" style="font-size:12px">—</div></div>
-                  <div><div class="k">Creator</div><div class="v" id="bcCreator" style="font-size:12px">—</div></div>
-                  <div><div class="k">Creator fees accrued</div><div class="v num" id="bcCreatorFees">—</div></div>
-                  <div><div class="k">Protocol fees accrued</div><div class="v num" id="bcProtoFees">—</div></div>
-                </div>
-                <div class="bs-tabs" style="margin-top:16px">
-                  <button type="button" id="bcTabBuy" class="active buy">Buy</button>
-                  <button type="button" id="bcTabSell" class="sell">Sell</button>
-                </div>
-                <div class="amt-box">
-                  <div class="row"><input type="text" inputmode="decimal" id="bcAmt" placeholder="0" aria-label="Bonding trade amount" /><span class="unit" id="bcAmtUnit">SOL</span></div>
-                  <div class="usd" id="bcQuoteLine">Fee 1%.</div>
-                </div>
-                <div class="quote-meta"><span>Slippage</span><span class="chip-row" id="bcSlipRow"><button type="button" class="chip" data-bslip="50">0.5%</button><button type="button" class="chip active" data-bslip="100">1%</button><button type="button" class="chip" data-bslip="200">2%</button><button type="button" class="chip" data-bslip="500">5%</button></span></div>
-                <button type="button" class="action-btn buy" id="bcTradeBtn">Buy on the curve</button>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-                  <button type="button" class="btn btn-grad" id="bcGraduateBtn" style="height:42px;display:none">Graduate to Raydium pool</button>
-                  <button type="button" class="btn btn-ghost" id="bcClaimBtn" style="height:42px">Claim fees</button>
-                  <button type="button" class="btn btn-ghost" id="bcRefreshBtn" style="height:42px">Refresh curve</button>
-                </div>
-                <p class="note-line" id="bcMigratedNote" style="display:none"><b>Graduated</b> — trade on Swap. Pool <span id="bcPoolId" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></span></p>
-                <div class="tx-status" id="bcStatus"></div>
-              </div>
               <div class="devnet-banner" id="bcNotLive" style="margin-top:12px"><b>Program:</b> <span id="bcNotLiveTxt">Checking…</span></div>
+              <!-- Trade engine state, kept in the DOM but never shown: the ONE
+                   visible trade panel (right column) mirrors these controls —
+                   same side, amount, slippage, quote and trade path. This card
+                   used to render a second full copy of them, which is what
+                   made the page look doubled. -->
+              <div hidden aria-hidden="true">
+                <span id="bcPrice"></span><span id="bcPriceSol"></span><span id="bcMcap"></span>
+                <button type="button" id="bcTabBuy" class="active buy">Buy</button>
+                <button type="button" id="bcTabSell" class="sell">Sell</button>
+                <input type="text" id="bcAmt" /><span id="bcAmtUnit">SOL</span>
+                <div id="bcQuoteLine">Fee 1%.</div>
+                <span id="bcBalLbl">Balance</span><span id="bcBalVal">—</span>
+                <span id="bcSlipRow"><button type="button" class="chip" data-bslip="50">0.5%</button><button type="button" class="chip active" data-bslip="100">1%</button><button type="button" class="chip" data-bslip="200">2%</button><button type="button" class="chip" data-bslip="500">5%</button></span>
+                <button type="button" id="bcTradeBtn">Buy on the curve</button>
+                <div id="bcStatus"></div>
+              </div>
             </div>
 
             <div class="card">
@@ -1374,14 +1401,10 @@
             </div>
 
             <div class="card">
-              <h3>Trades</h3>
-              <p class="note-line" style="margin:0">Buys and sells happen in the bonding curve panel on this page — priced live off the curve's reserves.</p>
-            </div>
-
-            <div class="card">
               <h3>Technical details</h3>
               <div class="tech-grid">
                 <div><div class="k">Mint address</div><div class="v" id="tdMint" style="word-break:break-all">—</div></div>
+                <div><div class="k">Status</div><div class="v" id="tdStatus">—</div></div>
                 <div><div class="k">Network</div><div class="v" id="tdNetwork">Solana</div></div>
                 <div><div class="k">Venue</div><div class="v" id="tdVenue">—</div></div>
                 <div><div class="k">Token standard</div><div class="v" id="tdStandard">—</div></div>
@@ -1391,33 +1414,38 @@
             </div>
           </div>
 
-          <!-- Trade panel -->
-          <div class="card trade-panel">
-            <div class="tp-head">
-              <img id="tpImg" src="assets/logo-sky.png" alt="" />
-              <div style="min-width:0">
-                <div class="tp-name" id="tpTitle">No token loaded</div>
-                <div class="tp-sub" id="tpSub">Bonding curve · Solana</div>
+          <!-- Trade panel — the ONE trade panel on this page, Ascend-style:
+               tabs + slippage on one row, amount box, presets, one CTA.
+               (It used to repeat the token's photo + name as its own header
+               and a second full panel lived in the curve card below.) -->
+          <div class="tp-col">
+            <div class="card trade-panel">
+              <div class="tp-top">
+                <div class="bs-tabs">
+                  <button type="button" id="tpTabBuy" class="active buy">Buy</button>
+                  <button type="button" id="tpTabSell" class="sell">Sell</button>
+                </div>
+                <button type="button" class="tp-slip" id="tpSlipBtn" aria-label="Cycle slippage tolerance">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                  <span id="tpSlipLbl">Slippage 1%</span>
+                </button>
               </div>
-              <button type="button" class="tp-slip" id="tpSlipBtn" aria-label="Cycle slippage tolerance">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
-                <span id="tpSlipLbl">Slippage 1%</span>
-              </button>
+              <div class="amt-box">
+                <div class="tp-amt-lbl" id="tpAmtLbl">You pay</div>
+                <div class="row"><input type="text" inputmode="decimal" id="tpAmt" placeholder="0" aria-label="Trade amount" /><span class="unit" id="tpAmtUnit">SOL</span></div>
+                <div class="usd" id="tpQuote">Fee 1%.</div>
+              </div>
+              <div class="bal-row"><span id="tpBalLbl">Balance</span><span id="tpBalVal">—</span></div>
+              <div class="tp-quick" id="tpQuick"></div>
+              <p class="tp-note" id="tpNote">Connecting a wallet is free and moves no money.</p>
+              <button type="button" class="action-btn connect" id="tpTradeBtn">Connect wallet</button>
+              <div class="tx-status" id="tpStatus"></div>
             </div>
-            <div class="bs-tabs" style="margin-bottom:12px">
-              <button type="button" id="tpTabBuy" class="active buy">Buy</button>
-              <button type="button" id="tpTabSell" class="sell">Sell</button>
+            <div class="card pos-card">
+              <h3>Your position</h3>
+              <div class="pos-body" id="posBody">Connect a wallet to see your position in this token.</div>
             </div>
-            <div class="amt-box">
-              <div class="tp-amt-lbl" id="tpAmtLbl">You pay</div>
-              <div class="row"><input type="text" inputmode="decimal" id="tpAmt" placeholder="0" aria-label="Trade amount" /><span class="unit" id="tpAmtUnit">SOL</span></div>
-              <div class="usd" id="tpQuote">Fee 1%.</div>
-            </div>
-            <div class="tp-quick" id="tpQuick"></div>
-            <p class="tp-note" id="tpNote">Connecting a wallet is free and moves no money.</p>
-            <button type="button" class="action-btn connect" id="tpTradeBtn">Connect wallet</button>
-            <div class="tx-status" id="tpStatus"></div>
-            <p class="note-line" id="tpText" style="margin-top:12px">Pick a token from Explore to open its page.</p>
+            <span id="tpTitle" hidden></span><span id="tpSub" hidden></span><span id="tpText" hidden></span><img id="tpImg" hidden alt="" />
           </div>
         </div>
       </section>
@@ -2650,10 +2678,27 @@
       if(state.network === "mainnet" && solUsd != null) return fmtUSD(mcapSol * solUsd);
       return fmtTokens(mcapSol, 2) + " SOL";
     }
+    /* The stat strip leads with the dollar price (Ascend-style) and keeps
+       the SOL price as its sub-line; until a SOL/USD price loads — and on
+       devnet, whose SOL has no dollar value — the SOL price leads and the
+       sub-line says where it comes from instead. */
+    function priceUsdTxt(priceSol){
+      if(priceSol == null || isNaN(priceSol) || state.network !== "mainnet" || solUsd == null) return null;
+      return fmtPrice(priceSol * solUsd);
+    }
+    function paintDetailPrice(priceSol){
+      var pu = priceUsdTxt(priceSol);
+      var usdEl = $("dStatPriceUsd"), solEl = $("dStatPrice");
+      if(usdEl) usdEl.textContent = pu || (priceSol != null ? fmtTokens(priceSol, 8) + " SOL" : "—");
+      if(solEl) solEl.textContent = pu ? fmtTokens(priceSol, 8) + " SOL" : "Per token, from the curve";
+    }
     function onSolUsd(){
       if(exploreCurvesNet === state.network) renderCurveRows();
       if(detailEntry) $("dStatMcap").textContent = fmtMcap(detailEntry.mcapSol);
+      if(detailEntry) paintDetailPrice(detailEntry.priceSol);
       if(state.bc) $("bcMcap").textContent = fmtMcap(Number(bcMcapLamports(state.bc.vsol, state.bc.vtok)) / 1e9);
+      /* The chart's header + axis switch from SOL to dollars with the price. */
+      if(typeof chartData !== "undefined" && chartData.points && chartData.mint === detailMint && typeof renderChart === "function") renderChart();
     }
     function fmtNum(v){
       if(v==null || isNaN(v)) return "—";
@@ -2964,7 +3009,8 @@
       $("dStatStatus").textContent = st.label;
       $("dStatVenue").textContent = st.venue;
       $("dStatContract").textContent = truncAddr(t.mint);
-      $("dStatPrice").textContent = t.priceSol != null ? fmtTokens(t.priceSol, 8) + " SOL" : "—";
+      if($("tdStatus")) $("tdStatus").textContent = st.label;
+      paintDetailPrice(t.priceSol);
       $("dStatMcap").textContent = fmtMcap(t.mcapSol);
       $("tdMint").textContent = t.mint;
       $("tdNetwork").textContent = "Solana " + state.network;
@@ -5724,6 +5770,26 @@
       return sig;
     }
     function bcKey(w3, pubkey, isSigner, isWritable){ return { pubkey: pubkey, isSigner: !!isSigner, isWritable: !!isWritable }; }
+    /* Known failure of the DEPLOYED curve program (v2), proven by
+       simulating a sell against mainnet on 22 Nov 2026: the program pays
+       SOL out of its own Curve account with a SystemProgram transfer,
+       and Solana always rejects a system transfer whose source account
+       carries data — the Curve account carries data by design. Every
+       sell (token page and Swap alike) and every fee claim therefore
+       fails simulation with "Transfer: `from` must not carry data" /
+       InstructionError InvalidArgument, whatever the wallet, amount or
+       balance; the app's transaction is built correctly (seller ATA and
+       accounts verified against the chain) and buys are unaffected
+       because SOL flows the other way. Only a program upgrade (v3, paying
+       out by moving lamports directly instead of a system transfer) can
+       fix it — detect the signature and say exactly that, instead of
+       leaving the raw runtime error looking like a user mistake. */
+    function isCurvePayoutBug(e){
+      return /must not carry data/i.test((e && e.message) || String(e || ""));
+    }
+    function curvePayoutBugHtml(action){
+      return '<span class="st-err">Stopped: ' + action + ' is blocked by a bug in the deployed bonding-curve program itself — not by your wallet, amount or balance.</span> The program pays SOL out of its own curve account with a system transfer, and Solana always rejects that ("Transfer: from must not carry data"), so every sell fails in simulation before anything is signed. Your tokens stay safe in your wallet and buys still work. The fix is a program upgrade (v3) deployed on-chain; no app update can work around it.';
+    }
 
     /* ================= Token image + metadata upload =================
        A bonding-curve launch carries only a metadata URI on-chain, so at
@@ -6151,6 +6217,17 @@
       if(v >= 10) return fmtTokens(v, 1);
       return fmtTokens(v, 2);
     }
+    /* Chart values are market caps computed in SOL; like the rest of the
+       page they display in dollars once a SOL/USD price is known (and
+       stay in SOL on devnet / before the price loads). */
+    function chartUsd(){ return state.network === "mainnet" && solUsd != null; }
+    function fmtAxisUsd(v){
+      if(v >= 1e6) return "$" + fmtTokens(v / 1e6, 2) + "M";
+      if(v >= 1e3) return "$" + fmtTokens(v / 1e3, 1) + "K";
+      return "$" + fmtTokens(v, 0);
+    }
+    function fmtAxisMcap(v){ return chartUsd() ? fmtAxisUsd(v * solUsd) : fmtAxisSol(v) + " SOL"; }
+    function fmtChartMcap(v){ return chartUsd() ? fmtUSD(v * solUsd) : fmtTokens(v, 2) + " SOL"; }
     function fmtChartTime(d, spanSec){
       if(spanSec <= 129600) return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
       return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -6197,7 +6274,7 @@
       }
       if(!candles.length){
         box.innerHTML = "";
-        $("chartMcap").textContent = fmtTokens(pts[pts.length - 1].mcap, 2) + " SOL";
+        $("chartMcap").textContent = fmtChartMcap(pts[pts.length - 1].mcap);
         chartMsg("No trades inside this time range — try All.");
         return;
       }
@@ -6215,7 +6292,7 @@
       for(var g = 0; g <= 6; g++){
         var gv = min + (max - min) * g / 6, gy = Y(gv);
         s += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" style="stroke:var(--border)" stroke-width="1" opacity="0.55"/>';
-        s += '<text class="axis-lbl" x="' + (W - padR + 8) + '" y="' + (gy + 3.5) + '">' + fmtAxisSol(gv) + " SOL</text>";
+        s += '<text class="axis-lbl" x="' + (W - padR + 8) + '" y="' + (gy + 3.5) + '">' + fmtAxisMcap(gv) + "</text>";
       }
       if(chartData.type === "line"){
         var dAttr = "", firstX = null, lastX = null;
@@ -6239,7 +6316,7 @@
         var x = X(cd.idx), vh = Math.max(1, cd.vol / maxVol * (volH - 4)), col = cd.c >= cd.o ? up : dn;
         s += '<rect x="' + (x - bw / 2) + '" y="' + (padT + plotH - vh) + '" width="' + bw + '" height="' + vh + '" style="fill:' + col + '" opacity="0.35"/>';
       });
-      var lastC = candles[candles.length - 1], ly = Y(lastC.c), lbl = fmtAxisSol(lastC.c) + " SOL";
+      var lastC = candles[candles.length - 1], ly = Y(lastC.c), lbl = fmtAxisMcap(lastC.c);
       s += '<line x1="' + padL + '" y1="' + ly + '" x2="' + (W - padR) + '" y2="' + ly + '" style="stroke:var(--faint)" stroke-width="1" stroke-dasharray="3 4"/>';
       s += '<rect x="' + (W - padR + 2) + '" y="' + (ly - 9) + '" width="64" height="18" rx="4" style="fill:var(--text)"/>';
       s += '<text x="' + (W - padR + 34) + '" y="' + (ly + 3.5) + '" text-anchor="middle" style="font-size:10px;font-weight:700;fill:var(--bg)">' + lbl + "</text>";
@@ -6252,7 +6329,7 @@
       box.innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Market cap chart">' + s + "</svg>";
       chartMsg(chartData.trades === 0 ? "No trades yet — the first buy moves this line." : null, chartData.trades === 0);
       var firstO = candles[0].o, lastV = lastC.c;
-      $("chartMcap").textContent = fmtTokens(lastV, 2) + " SOL";
+      $("chartMcap").textContent = fmtChartMcap(lastV);
       var chg = firstO > 0 ? (lastV - firstO) / firstO * 100 : 0;
       var chip = $("chartChg");
       chip.textContent = (chg > 0 ? "+" : "") + chg.toFixed(1) + "% " + CHART_RANGE_LBL[chartData.range];
@@ -6276,7 +6353,9 @@
         var cx = R.padL + (cd.idx + 0.5) * (R.plotW / R.nb);
         var cy = R.padT + (R.max - cd.c) / (R.max - R.min) * R.priceH;
         g.innerHTML = '<line x1="' + cx + '" y1="' + R.padT + '" x2="' + cx + '" y2="' + (R.padT + R.plotH) + '" style="stroke:var(--faint)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="' + cx + '" cy="' + cy + '" r="3.5" style="fill:var(--text)"/>';
-        tip.innerHTML = "<b>" + fmtChartTimeFull(new Date(cd.t * 1000)) + "</b><br/>O <b>" + fmtTokens(cd.o, 3) + "</b> · H <b>" + fmtTokens(cd.h, 3) + "</b><br/>L <b>" + fmtTokens(cd.l, 3) + "</b> · C <b>" + fmtTokens(cd.c, 3) + "</b> SOL" + (cd.vol ? "<br/>Vol <b>" + fmtTokens(cd.vol, 3) + " SOL</b>" : "");
+        var tipUsd = chartUsd();
+        function tipV(v){ return tipUsd ? fmtUSD(v * solUsd) : fmtTokens(v, 3) + " SOL"; }
+        tip.innerHTML = "<b>" + fmtChartTimeFull(new Date(cd.t * 1000)) + "</b><br/>O <b>" + tipV(cd.o) + "</b> · H <b>" + tipV(cd.h) + "</b><br/>L <b>" + tipV(cd.l) + "</b> · C <b>" + tipV(cd.c) + "</b>" + (cd.vol ? "<br/>Vol <b>" + fmtTokens(cd.vol, 3) + " SOL</b>" : "");
         tip.style.display = "block";
         var wrap = tip.parentElement.getBoundingClientRect();
         tip.style.left = Math.min(Math.max(4, (cx / R.W) * wrap.width + 12), Math.max(4, wrap.width - 158)) + "px";
@@ -6346,7 +6425,75 @@
        A compact mirror of the bonding-curve panel below it — same side,
        amount, slippage, quote and trade button state, so both panels
        always agree and there is exactly one trade path. */
-    var tpSellBal = { mint: null, bal: null };
+    var tpSellBal = { mint: null, owner: null, bal: null, failed: false };
+    function tpBalFresh(){ return !!(state.wallet && tpSellBal.mint === detailMint && tpSellBal.owner === state.wallet.pubkey); }
+    var tpBalBusy = false;
+    /* The trade panels never showed the wallet's balance for the open
+       token, so on the Sell side the amount box reading "0" looked like
+       the wallet held nothing — the holder of 35,407 TEST saw "You sell
+       0 tokens" with no way to tell his balance was never read. Both
+       panels now carry a live balance line (SOL on Buy, the token on
+       Sell), read from the wallet's own token accounts with the same
+       failover RPC every other read uses. A failed read says so; it is
+       never painted as a zero balance. */
+    function tpSym(){
+      if(detailEntry && detailMint && detailEntry.mint === detailMint && detailEntry.sym) return detailEntry.sym;
+      if(state.bc && state.bc.mintStr === detailMint){
+        var ct = state.createdTokens.filter(function(t){ return t.mint === detailMint; })[0];
+        if(ct && ct.sym) return ct.sym;
+      }
+      return "tokens";
+    }
+    function paintTpBalances(){
+      var buy = state.bcSide === "buy";
+      [["bcBalLbl", "bcBalVal"], ["tpBalLbl", "tpBalVal"]].forEach(function(ids){
+        var lbl = $(ids[0]), val = $(ids[1]); if(!lbl || !val) return;
+        if(!state.wallet){ lbl.textContent = "Balance"; val.textContent = "Connect wallet"; return; }
+        if(buy){
+          lbl.textContent = "SOL balance";
+          val.textContent = state.solBal == null ? "Loading…" : fmtTokens(state.solBal, 4) + " SOL";
+          return;
+        }
+        lbl.textContent = "You hold";
+        if(tpBalFresh() && tpSellBal.bal != null) val.textContent = fmtTokens(tpSellBal.bal, 4) + " " + tpSym();
+        else if(tpBalFresh() && tpSellBal.failed) val.textContent = "Couldn't be read — tap a % button to retry";
+        else val.textContent = detailMint ? "Loading…" : "—";
+      });
+      paintPosition();
+    }
+    /* "Your position" card under the trade panel (Ascend-style) — fed by
+       the same wallet balance read as the Sell side, so it never invents
+       a holding: no wallet, still loading, read failed and no position
+       each say exactly that. */
+    function paintPosition(){
+      var el = $("posBody"); if(!el) return;
+      if(!detailMint){ el.textContent = "Open a token to see your position in it."; return; }
+      if(!state.wallet){ el.textContent = "Connect a wallet to see your position in this token."; return; }
+      if(tpBalFresh() && tpSellBal.bal != null){
+        el.innerHTML = tpSellBal.bal > 0
+          ? "You hold <b>" + fmtTokens(tpSellBal.bal, 4) + " " + esc(tpSym()) + "</b> in this wallet."
+          : "No position yet. You hold no " + esc(tpSym()) + " in this wallet.";
+        return;
+      }
+      if(tpBalFresh() && tpSellBal.failed){ el.textContent = "Couldn't read your balance — the RPC didn't answer. It retries when the panel refreshes."; return; }
+      el.textContent = "Reading your balance…";
+    }
+    function loadSellBalance(){
+      if(!state.wallet || !detailMint || tpBalBusy) return;
+      if(tpBalFresh() && tpSellBal.bal != null) return;
+      tpBalBusy = true;
+      rpc("getTokenAccountsByOwner", [state.wallet.pubkey, { mint: detailMint }, { encoding: "jsonParsed" }]).then(function(j){
+        tpBalBusy = false;
+        if(!j){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); return; }
+        var total = 0;
+        ((j.result && j.result.value) || []).forEach(function(a){
+          total += parseFloat(a.account.data.parsed.info.tokenAmount.uiAmountString || "0");
+        });
+        tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: total, failed: false };
+        state.balances[detailMint] = total;
+        paintTpBalances();
+      });
+    }
     var tpQuickSide = null;
     function syncTpPanel(){
       if(!$("tpTradeBtn")) return;
@@ -6369,6 +6516,10 @@
       }
       var st = $("tpStatus"), bs = $("bcStatus");
       if(st && bs && st.innerHTML !== bs.innerHTML) st.innerHTML = bs.innerHTML;
+      paintTpBalances();
+      /* The balance read also feeds the Your position card, so it runs on
+         both sides now, not just Sell. */
+      if(state.wallet) loadSellBalance();
     }
     function renderTpQuick(){
       var q = $("tpQuick"); if(!q) return;
@@ -6402,17 +6553,23 @@
       if(!state.wallet){ openWalletModal(); return; }
       if(!detailMint) return;
       var pct = parseInt(lbl, 10) / 100;
-      if(tpSellBal.mint === detailMint && tpSellBal.bal != null){
+      if(tpBalFresh() && tpSellBal.bal != null){
         if(tpSellBal.bal <= 0){ toast("You don't hold this token."); return; }
         tpSetAmount(String(Math.floor(tpSellBal.bal * pct * 10000) / 10000));
         return;
       }
       rpc("getTokenAccountsByOwner", [state.wallet.pubkey, { mint: detailMint }, { encoding: "jsonParsed" }]).then(function(j){
+        /* rpc() resolves null only when every endpoint failed — that is
+           a read failure, not a zero balance, and must not be reported
+           to the holder as "you don't hold this token". */
+        if(!j){ tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: null, failed: true }; paintTpBalances(); toast("Couldn't read your token balance — the RPC didn't answer. Try again in a second."); return; }
         var total = 0;
-        ((j && j.result && j.result.value) || []).forEach(function(a){
+        ((j.result && j.result.value) || []).forEach(function(a){
           total += parseFloat(a.account.data.parsed.info.tokenAmount.uiAmountString || "0");
         });
-        tpSellBal = { mint: detailMint, bal: total };
+        tpSellBal = { mint: detailMint, owner: state.wallet ? state.wallet.pubkey : null, bal: total, failed: false };
+        state.balances[detailMint] = total;
+        paintTpBalances();
         if(total <= 0){ toast("You don't hold this token."); return; }
         tpSetAmount(String(Math.floor(total * pct * 10000) / 10000));
       });
@@ -6544,13 +6701,14 @@
       if(detailMint === c.mintStr){
         var priceTxt = fmtTokens(Number(priceLamports) / 1e9, 8) + " SOL";
         $("detailPrice").textContent = priceTxt;
-        $("dStatPrice").textContent = priceTxt;
+        paintDetailPrice(Number(priceLamports) / 1e9);
         $("dStatMcap").textContent = fmtMcap(mcapSol);
         $("dStatLiquidity").textContent = fmtTokens(Number(c.realSol) / 1e9, 2) + " SOL";
         chartOnCurveUpdate(mcapSol);
         var dst = detailStatus(c);
         $("dStatStatus").textContent = dst.label;
         $("dStatVenue").textContent = dst.venue;
+        if($("tdStatus")) $("tdStatus").textContent = dst.label;
         var dchip = $("detailChip");
         dchip.textContent = dst.chip;
         dchip.style.color = (c.migrated || c.complete) ? "var(--green)" : "var(--muted)";
@@ -6592,7 +6750,11 @@
     }
     function updateBcQuote(){
       var line = $("bcQuoteLine"); if(!line || !state.bc) return;
-      $("bcAmtUnit").textContent = state.bcSide === "buy" ? "SOL" : (state.bc ? (state.createdTokens.filter(function(t){ return t.mint === state.bc.mintStr; })[0] || {}).sym || "tokens" : "tokens");
+      /* Sell-side unit: createdTokens only knows this session's launches,
+         so after a reload every older token's unit fell back to the
+         generic word "tokens". tpSym() reads the open token's real
+         symbol (detail header / Explore entry) first. */
+      $("bcAmtUnit").textContent = state.bcSide === "buy" ? "SOL" : tpSym();
       var q = bcCurrentQuote();
       if(!q){ line.textContent = "Fee 1%."; return; }
       if(q.error){ line.textContent = q.error; return; }
@@ -6661,11 +6823,12 @@
         var sig = await bcSendIx(box, ix, [], summary);
         statusLine(box, '<span class="st-ok">Trade confirmed.</span> <a href="' + explorerTx(sig) + '" target="_blank" rel="noopener">View on Solscan</a>');
         toast("Curve trade confirmed");
+        tpSellBal = { mint: null, owner: null, bal: null, failed: false };
         loadBalances();
         await loadBcCurve(c.mintStr);
       } catch(e) {
-        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
-      } finally { state.bcBusy = false; updateBcTradeBtn(); }
+        statusLine(box, isCurvePayoutBug(e) ? curvePayoutBugHtml(state.bcSide === "sell" ? "Selling" : "This trade") : '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+      } finally { state.bcBusy = false; updateBcTradeBtn(); syncTpPanel(); }
     }
     $("bcTradeBtn").addEventListener("click", function(){ bcTrade(); });
     async function bcGraduate(){
@@ -6720,7 +6883,7 @@
         toast("Graduated to Raydium — pool is live");
         await loadBcCurve(c.mintStr);
       } catch(e) {
-        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+        statusLine(box, isCurvePayoutBug(e) ? curvePayoutBugHtml("Graduating") : '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
       } finally { state.bcBusy = false; updateBcTradeBtn(); }
     }
     $("bcGraduateBtn").addEventListener("click", bcGraduate);
@@ -6749,7 +6912,7 @@
         loadBalances();
         await loadBcCurve(c.mintStr);
       } catch(e) {
-        statusLine(box, '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
+        statusLine(box, isCurvePayoutBug(e) ? curvePayoutBugHtml("Claiming fees") : '<span class="st-err">Stopped: ' + esc(shortErr(e)) + '</span>');
       } finally { state.bcBusy = false; updateBcTradeBtn(); }
     }
     $("bcClaimBtn").addEventListener("click", bcCollectFees);
